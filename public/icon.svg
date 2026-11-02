@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF6D2"/>
+      <stop offset="46%" stop-color="#8ECAF4"/>
+      <stop offset="100%" stop-color="#2F6FA3"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="38%" cy="36%" r="65%">
+      <stop offset="0%" stop-color="#FFF8DC"/>
+      <stop offset="55%" stop-color="#FFD056"/>
+      <stop offset="100%" stop-color="#F0A020"/>
+    </radialGradient>
+    <linearGradient id="cloud" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E3EDF6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <g stroke="#FFE08A" stroke-width="14" stroke-linecap="round" transform="translate(248 196)">
+    <line x1="0" y1="-108" x2="0" y2="-132"/>
+    <line x1="76" y1="-76" x2="94" y2="-94"/>
+    <line x1="108" y1="0" x2="132" y2="0"/>
+    <line x1="54" y1="-94" x2="66" y2="-114"/>
+    <line x1="-76" y1="-76" x2="-94" y2="-94"/>
+    <line x1="-108" y1="0" x2="-128" y2="0"/>
+    <line x1="-54" y1="-94" x2="-64" y2="-114"/>
+  </g>
+  <circle cx="248" cy="196" r="72" fill="url(#sun)"/>
+  <ellipse cx="226" cy="176" rx="22" ry="12" fill="#fff" opacity="0.55"/>
+  <g fill="url(#cloud)">
+    <ellipse cx="268" cy="318" rx="132" ry="70"/>
+    <circle cx="176" cy="304" r="62"/>
+    <circle cx="250" cy="268" r="78"/>
+    <circle cx="334" cy="308" r="56"/>
+  </g>
+  <ellipse cx="236" cy="286" rx="46" ry="18" fill="#fff" opacity="0.45"/>
+</svg>

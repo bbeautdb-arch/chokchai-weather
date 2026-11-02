@@ -3,14 +3,24 @@ import { useWeather } from './hooks/useWeather'
 import {
   formatBangkokNow,
   formatUpdatedAt,
-  findRainPeak,
-  chartWindow,
-  bangkokHourNow,
   pickBackground,
   timeOfDayFromHour,
+  bangkokHourNow,
+  conditionLabelFor,
   type SceneKey,
+  type TimeOfDay,
 } from './lib/weather'
 import { WeatherCard, WeatherSkeleton } from './components/WeatherCard'
+import { BrandMark } from './components/WeatherIcon'
+
+const DEMO_CODE: Record<SceneKey, number> = {
+  sunny: 0,
+  partly: 2,
+  cloudy: 3,
+  rain: 63,
+  storm: 95,
+  fog: 45,
+}
 
 export default function App() {
   const weather = useWeather()
@@ -18,9 +28,9 @@ export default function App() {
     try {
       const q = new URLSearchParams(window.location.search)
       const scene = q.get('scene') as SceneKey | null
-      const tod = q.get('tod') as import('./lib/weather').TimeOfDay | null
-      const validScene = scene && ['sunny','partly','cloudy','rain','storm','fog'].includes(scene) ? scene : null
-      const validTod = tod && ['dawn','day','sunset','night'].includes(tod) ? tod : null
+      const tod = q.get('tod') as TimeOfDay | null
+      const validScene = scene && ['sunny', 'partly', 'cloudy', 'rain', 'storm', 'fog'].includes(scene) ? scene : null
+      const validTod = tod && ['dawn', 'day', 'sunset', 'night'].includes(tod) ? tod : null
       return { scene: validScene, tod: validTod }
     } catch {
       return { scene: null, tod: null }
@@ -58,55 +68,33 @@ export default function App() {
 
   const displayData = useMemo(() => {
     if (!liveData) return null
-    if (!demo.scene) return liveData
+    if (!demo.scene && !demo.tod) return liveData
     const tod = demo.tod ?? liveData.timeOfDay
+    const nextScene = demo.scene ?? liveData.scene
+    const code = demo.scene ? DEMO_CODE[demo.scene] : liveData.current.weatherCode
     return {
       ...liveData,
-      scene: demo.scene,
-      sceneLabel: ({ sunny: 'แดดจัด', partly: 'มีเมฆบางส่วน', cloudy: 'มีเมฆ', rain: 'ฝน', storm: 'พายุ', fog: 'หมอก / ฝุ่นควัน' } as const)[demo.scene],
+      scene: nextScene,
       timeOfDay: tod,
-      backgroundUrl: pickBackground(demo.scene, tod, 'demo'),
-      conditionLabel:
-        demo.scene === 'sunny'
-          ? 'ท้องฟ้าโปร่ง · แดดจัด'
-          : demo.scene === 'partly'
-            ? 'มีเมฆบางส่วน'
-            : demo.scene === 'cloudy'
-              ? 'มีเมฆปกคลุม'
-              : demo.scene === 'rain'
-                ? 'มีฝน'
-                : demo.scene === 'storm'
-                  ? 'พายุฝนฟ้าคะนอง'
-                  : 'หมอก / ฝุ่นควัน',
+      backgroundUrl: pickBackground(nextScene, tod, 'demo'),
+      conditionLabel: conditionLabelFor(nextScene, code, tod),
     }
   }, [liveData, demo])
 
-  let peakChip = 'พีคฝน —'
-  if (displayData) {
-    const from = Math.min(Math.max(bangkokHourNow(), 0), 15)
-    const win = chartWindow(displayData.hourly, from, 9)
-    const peak = findRainPeak(win)
-    if (peak) {
-      peakChip = `พีคฝน ${String(peak.hour).padStart(2, '0')}:00 · ${Math.round(peak.precipProb)}%`
-    }
-  }
-
-  const sceneChip = displayData ? displayData.sceneLabel : 'กำลังโหลด…'
-  const showStaleBanner =
-    weather.status === 'error' && weather.stale
-      ? true
-      : weather.status === 'ready' && weather.fromCache
-
+  const showStaleBanner = weather.status === 'error' && Boolean(weather.stale)
   const updatedLabel = displayData?.fetchedAt
-    ? `อัปเดตล่าสุด ${formatUpdatedAt(displayData.fetchedAt)} น.`
+    ? `อัปเดต ${formatUpdatedAt(displayData.fetchedAt)} น.`
     : null
+  const markScene = displayData?.scene ?? demo.scene ?? 'partly'
+  const markNight = (displayData?.timeOfDay ?? demo.tod) === 'night'
 
   return (
     <div
       className="relative min-h-screen overflow-hidden bg-[#1a2218] bg-cover bg-center max-md:bg-[position:55%_65%]"
-      style={{ backgroundImage: `url(${bg})` }}
-      data-scene={scene}
-      data-bg={bg}
+      style={{ backgroundImage: `url(${displayData?.backgroundUrl ?? bg})` }}
+      data-scene={displayData?.scene ?? scene}
+      data-tod={displayData?.timeOfDay ?? demo.tod ?? ''}
+      data-bg={displayData?.backgroundUrl ?? bg}
     >
       <div
         className="pointer-events-none absolute inset-0 z-0"
@@ -117,68 +105,52 @@ export default function App() {
       />
 
       <div className="relative z-[1] mx-auto flex min-h-screen max-w-[720px] flex-col px-4 pb-8 pt-5 md:max-w-[880px] md:px-8 md:pb-10 md:pt-8">
-        <header className="glass glass-strong mb-4 flex flex-col gap-3.5 p-4 md:mb-5 md:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-start gap-3">
-              <span
-                className="mt-0.5 h-10 w-10 shrink-0 rounded-[12px] shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_8px_16px_rgba(80,60,30,0.32)]"
-                style={{
-                  background: 'linear-gradient(145deg, #F0DCC0, #B89562 55%, #8A7048)',
-                }}
-                aria-hidden="true"
-              />
-              <div>
-                <h1
-                  className="text-[20px] font-bold leading-tight tracking-[-0.02em] md:text-[24px]"
-                  style={{ textShadow: '0 1px 0 rgba(255,255,255,0.4)' }}
-                >
-                  อากาศโชคชัย
-                </h1>
-                <p className="mt-1 text-[14px] font-medium leading-[1.65] text-[var(--color-ink-soft)] md:text-[15px]">
-                  นครราชสีมา · ดูสดจาก Open-Meteo
-                </p>
-              </div>
-            </div>
-            <div className="shrink-0 pt-1 text-right">
-              <p className="tabular text-[13px] font-semibold text-[var(--color-ink-2)] md:text-[14px]">
-                {formatBangkokNow()}
+        <header className="glass glass-strong mb-4 flex items-start justify-between gap-3 p-4 md:mb-5 md:p-5">
+          <div className="flex min-w-0 items-start gap-3">
+            <BrandMark scene={markScene} night={markNight} />
+            <div className="min-w-0">
+              <h1
+                className="text-[22px] font-bold leading-tight tracking-[-0.02em] md:text-[26px]"
+                style={{ textShadow: '0 1px 0 rgba(255,255,255,0.4)' }}
+              >
+                อากาศโชคชัย
+              </h1>
+              <p className="mt-0.5 text-[14px] font-semibold leading-snug text-[var(--color-ink)]">
+                นครราชสีมา
               </p>
               {updatedLabel && (
-                <p className="mt-0.5 text-[11px] font-semibold text-[var(--color-ink-soft)]">
-                  {updatedLabel}
-                </p>
+                <p className="text-[12px] font-semibold text-[var(--color-ink-soft)]">{updatedLabel}</p>
               )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Chip>
-              ฉาก: <em className="not-italic text-[var(--color-champagne-deep)]">{sceneChip}</em>
-            </Chip>
-            <Chip>
+          <div className="shrink-0 pt-1 text-right">
+            <p className="tabular text-[13px] font-bold text-[var(--color-ink)] md:text-[15px]">
+              {formatBangkokNow()}
+            </p>
+            <p className="mt-1 text-[12px] font-bold text-[var(--color-ink-soft)]">
               {weather.status === 'error' && !weather.stale
-                ? 'Open-Meteo ล้มเหลว'
-                : showStaleBanner
-                  ? 'แคชล่าสุด'
-                  : 'Open-Meteo สด'}
-            </Chip>
-            <Chip>{peakChip}</Chip>
+                ? 'โหลดไม่สำเร็จ'
+                : showStaleBanner || (weather.status === 'ready' && weather.fromCache)
+                  ? 'ข้อมูลที่บันทึกไว้'
+                  : 'ข้อมูลสด'}
+            </p>
           </div>
         </header>
 
         {weather.status === 'error' && (
           <div
             role="alert"
-            className="glass mb-4 flex flex-wrap items-center justify-between gap-3 p-4 text-[15px] font-semibold leading-[1.6] text-[var(--color-warn)]"
+            className="glass mb-4 flex flex-wrap items-center justify-between gap-3 p-4 text-[15px] font-semibold leading-snug text-[var(--color-warn)]"
           >
             <span>
               {weather.stale
-                ? `อัปเดตไม่สำเร็จ — แสดงข้อมูลล่าสุดที่บันทึกไว้: ${weather.message}`
-                : `โหลดอากาศไม่สำเร็จ: ${weather.message}`}
+                ? `อัปเดตไม่สำเร็จ แสดงข้อมูลล่าสุดที่บันทึกไว้`
+                : `โหลดอากาศไม่สำเร็จ`}
             </span>
             <button
               type="button"
               onClick={weather.retry}
-              className="min-h-[44px] rounded-full border border-white/60 bg-white/50 px-4 font-bold text-[var(--color-ink)]"
+              className="min-h-[44px] rounded-full border border-white/70 bg-white/70 px-4 font-bold text-[var(--color-ink)]"
             >
               ลองใหม่
             </button>
@@ -186,32 +158,9 @@ export default function App() {
         )}
 
         <main className="flex-1">
-          {displayData ? (
-            <WeatherCard data={displayData} />
-          ) : (
-            <WeatherSkeleton />
-          )}
+          {displayData ? <WeatherCard data={displayData} /> : <WeatherSkeleton />}
         </main>
-
-        <footer className="mt-5 flex flex-col gap-1 text-[12px] font-semibold leading-relaxed text-white/90 [text-shadow:0_1px_3px_rgba(0,0,0,0.5)] md:mt-6 md:flex-row md:items-center md:justify-between md:text-[13px]">
-          <span>
-            <span className="tracking-[0.08em] text-[#F5E6C8]">CHOKCHAI WEATHER</span> · liquid glass ·
-            PWA
-          </span>
-          <span>
-            พื้นหลังตามสภาพตอนนี้ ({sceneChip}
-            {displayData ? ` · ${displayData.timeOfDay}` : ''}) · กราฟรายชั่วโมงแสดงแนวโน้มฝน
-          </span>
-        </footer>
       </div>
     </div>
-  )
-}
-
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full border border-white/55 bg-white/40 px-2.5 py-1.5 text-[13px] font-bold text-[var(--color-ink-2)] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-      {children}
-    </span>
   )
 }
