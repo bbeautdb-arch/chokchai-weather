@@ -1,0 +1,48 @@
+Background photo credits — Chok Chai Weather PWA
+All images used under free licences (Pexels License or Unsplash License).
+Commercial use allowed; photographer attribution appreciated.
+Downloaded and compressed to WebP for this app. Originals linked by ID below.
+
+sunny-dawn-1.webp — Pexels #691668 — sunrise field — https://images.pexels.com/photos/691668/pexels-photo-691668.jpeg
+sunny-dawn-2.webp — Pexels #414171 — golden dawn sky — https://images.pexels.com/photos/414171/pexels-photo-414171.jpeg
+sunny-day-1.webp — Pexels #96622 — blue sky sun — https://images.pexels.com/photos/96622/pexels-photo-96622.jpeg
+sunny-day-2.webp — Pexels #912364 — sunny countryside — https://images.pexels.com/photos/912364/pexels-photo-912364.jpeg
+sunny-day-3.webp — Pexels #53594 — bright blue sky — https://images.pexels.com/photos/53594/blue-clouds-day-fluffy-53594.jpeg
+sunny-sunset-1.webp — Pexels #462162 — vivid sunset — https://images.pexels.com/photos/462162/pexels-photo-462162.jpeg
+sunny-sunset-2.webp — Pexels #325185 — orange sunset sea/sky — https://images.pexels.com/photos/325185/pexels-photo-325185.jpeg
+sunny-night-1.webp — Pexels #355465 — clear night stars — https://images.pexels.com/photos/355465/pexels-photo-355465.jpeg
+sunny-night-2.webp — Pexels #2150 — night sky — https://images.pexels.com/photos/2150/sky-space-dark-galaxy.jpg
+partly-dawn-1.webp — Pexels #1287145 — soft dawn clouds — https://images.pexels.com/photos/1287145/pexels-photo-1287145.jpeg
+partly-dawn-2.webp — Pexels #3408744 — pastel dawn — https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg
+partly-day-1.webp — Pexels #158163 — fluffy day clouds — https://images.pexels.com/photos/158163/clouds-cloudporn-weather-lookup-158163.jpeg
+partly-day-2.webp — Pexels #167699 — partly cloudy landscape — https://images.pexels.com/photos/167699/pexels-photo-167699.jpeg
+partly-day-3.webp — Unsplash photo-1534088568595 — blue sky white clouds — https://images.unsplash.com/photo-1534088568595-a066f410bcda
+partly-sunset-1.webp — Pexels #1287075 — cloudy sunset colors — https://images.pexels.com/photos/1287075/pexels-photo-1287075.jpeg
+partly-sunset-2.webp — Pexels #219998 — golden cloudy dusk — https://images.pexels.com/photos/219998/pexels-photo-219998.jpeg
+partly-night-1.webp — Pexels #2885320 — evening cloudscape — https://images.pexels.com/photos/2885320/pexels-photo-2885320.jpeg
+cloudy-dawn-1.webp — Pexels #1367192 — overcast dawn — https://images.pexels.com/photos/1367192/pexels-photo-1367192.jpeg
+cloudy-day-1.webp — Pexels #209831 — grey cloudy sky — https://images.pexels.com/photos/209831/pexels-photo-209831.jpeg
+cloudy-day-2.webp — Pexels #1463530 — heavy clouds — https://images.pexels.com/photos/1463530/pexels-photo-1463530.jpeg
+cloudy-day-3.webp — Pexels #1117403 — overcast landscape — https://images.pexels.com/photos/1117403/pexels-photo-1117403.jpeg
+cloudy-sunset-1.webp — Pexels #1118874 — dramatic cloudy dusk — https://images.pexels.com/photos/1118874/pexels-photo-1118874.jpeg
+cloudy-sunset-2.webp — Pexels #1446076 — moody sunset clouds — https://images.pexels.com/photos/1446076/pexels-photo-1446076.jpeg
+cloudy-night-1.webp — Pexels #125510 — dark cloudy night — https://images.pexels.com/photos/125510/pexels-photo-125510.jpeg
+rain-dawn-1.webp — Pexels #15286 — misty rain forest mood — https://images.pexels.com/photos/15286/pexels-photo.jpg
+rain-day-1.webp — Pexels #459451 — rain drops glass — https://images.pexels.com/photos/459451/pexels-photo-459451.jpeg
+rain-day-2.webp — Pexels #1108572 — rainy weather — https://images.pexels.com/photos/1108572/pexels-photo-1108572.jpeg
+rain-day-3.webp — Pexels #1162251 — wet rainy day — https://images.pexels.com/photos/1162251/pexels-photo-1162251.jpeg
+rain-sunset-1.webp — Pexels #1118873 — stormy rain dusk light — https://images.pexels.com/photos/1118873/pexels-photo-1118873.jpeg
+rain-night-1.webp — Pexels #39811 — night rain lights — https://images.pexels.com/photos/39811/pexels-photo-39811.jpeg
+rain-night-2.webp — Unsplash photo-1501999635878 — night rain — https://images.unsplash.com/photo-1501999635878-71cb5379c2d8
+storm-dawn-1.webp — Pexels #1446076 — ominous dawn storm — https://images.pexels.com/photos/1446076/pexels-photo-1446076.jpeg
+storm-day-1.webp — Pexels #1118873 — lightning / storm clouds — https://images.pexels.com/photos/1118873/pexels-photo-1118873.jpeg
+storm-day-2.webp — Pexels #1463530 — dark storm day — https://images.pexels.com/photos/1463530/pexels-photo-1463530.jpeg
+storm-sunset-1.webp — Pexels #1118874 — stormy sunset — https://images.pexels.com/photos/1118874/pexels-photo-1118874.jpeg
+storm-night-1.webp — Pexels #125510 — storm night sky — https://images.pexels.com/photos/125510/pexels-photo-125510.jpeg
+storm-night-2.webp — Unsplash photo-1605727216801 — lightning night — https://images.unsplash.com/photo-1605727216801-e27ce1d0cc28
+fog-dawn-1.webp — Pexels #167699 — misty morning hills — https://images.pexels.com/photos/167699/pexels-photo-167699.jpeg
+fog-dawn-2.webp — Unsplash photo-1487621167305 — misty forest dawn — https://images.unsplash.com/photo-1487621167305-5d248087c724
+fog-day-1.webp — Unsplash photo-1502085671122 — haze mountains — https://images.unsplash.com/photo-1502085671122-2d218cd434e6
+fog-day-2.webp — Pexels #1367192 — foggy day landscape — https://images.pexels.com/photos/1367192/pexels-photo-1367192.jpeg
+fog-sunset-1.webp — Unsplash photo-1502082553048 — misty sunset trees — https://images.unsplash.com/photo-1502082553048-f009c37129b9
+fog-night-1.webp — Pexels #2885320 — hazy night clouds — https://images.pexels.com/photos/2885320/pexels-photo-2885320.jpeg

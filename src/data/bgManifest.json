@@ -1,0 +1,303 @@
+[
+  {
+    "id": "sunny-dawn-1",
+    "scene": "sunny",
+    "tod": "dawn",
+    "file": "assets/bg/sunny-dawn-1.webp",
+    "bytes": 130566
+  },
+  {
+    "id": "sunny-dawn-2",
+    "scene": "sunny",
+    "tod": "dawn",
+    "file": "assets/bg/sunny-dawn-2.webp",
+    "bytes": 142502
+  },
+  {
+    "id": "sunny-day-1",
+    "scene": "sunny",
+    "tod": "day",
+    "file": "assets/bg/sunny-day-1.webp",
+    "bytes": 62436
+  },
+  {
+    "id": "sunny-day-2",
+    "scene": "sunny",
+    "tod": "day",
+    "file": "assets/bg/sunny-day-2.webp",
+    "bytes": 99410
+  },
+  {
+    "id": "sunny-day-3",
+    "scene": "sunny",
+    "tod": "day",
+    "file": "assets/bg/sunny-day-3.webp",
+    "bytes": 185136
+  },
+  {
+    "id": "sunny-sunset-1",
+    "scene": "sunny",
+    "tod": "sunset",
+    "file": "assets/bg/sunny-sunset-1.webp",
+    "bytes": 209084
+  },
+  {
+    "id": "sunny-sunset-2",
+    "scene": "sunny",
+    "tod": "sunset",
+    "file": "assets/bg/sunny-sunset-2.webp",
+    "bytes": 67330
+  },
+  {
+    "id": "sunny-night-1",
+    "scene": "sunny",
+    "tod": "night",
+    "file": "assets/bg/sunny-night-1.webp",
+    "bytes": 128774
+  },
+  {
+    "id": "sunny-night-2",
+    "scene": "sunny",
+    "tod": "night",
+    "file": "assets/bg/sunny-night-2.webp",
+    "bytes": 150176
+  },
+  {
+    "id": "partly-dawn-1",
+    "scene": "partly",
+    "tod": "dawn",
+    "file": "assets/bg/partly-dawn-1.webp",
+    "bytes": 163196
+  },
+  {
+    "id": "partly-dawn-2",
+    "scene": "partly",
+    "tod": "dawn",
+    "file": "assets/bg/partly-dawn-2.webp",
+    "bytes": 132758
+  },
+  {
+    "id": "partly-day-1",
+    "scene": "partly",
+    "tod": "day",
+    "file": "assets/bg/partly-day-1.webp",
+    "bytes": 112122
+  },
+  {
+    "id": "partly-day-2",
+    "scene": "partly",
+    "tod": "day",
+    "file": "assets/bg/partly-day-2.webp",
+    "bytes": 141280
+  },
+  {
+    "id": "partly-day-3",
+    "scene": "partly",
+    "tod": "day",
+    "file": "assets/bg/partly-day-3.webp",
+    "bytes": 146458
+  },
+  {
+    "id": "partly-sunset-1",
+    "scene": "partly",
+    "tod": "sunset",
+    "file": "assets/bg/partly-sunset-1.webp",
+    "bytes": 116282
+  },
+  {
+    "id": "partly-sunset-2",
+    "scene": "partly",
+    "tod": "sunset",
+    "file": "assets/bg/partly-sunset-2.webp",
+    "bytes": 171034
+  },
+  {
+    "id": "partly-night-1",
+    "scene": "partly",
+    "tod": "night",
+    "file": "assets/bg/partly-night-1.webp",
+    "bytes": 139372
+  },
+  {
+    "id": "cloudy-dawn-1",
+    "scene": "cloudy",
+    "tod": "dawn",
+    "file": "assets/bg/cloudy-dawn-1.webp",
+    "bytes": 127152
+  },
+  {
+    "id": "cloudy-day-1",
+    "scene": "cloudy",
+    "tod": "day",
+    "file": "assets/bg/cloudy-day-1.webp",
+    "bytes": 111970
+  },
+  {
+    "id": "cloudy-day-2",
+    "scene": "cloudy",
+    "tod": "day",
+    "file": "assets/bg/cloudy-day-2.webp",
+    "bytes": 124354
+  },
+  {
+    "id": "cloudy-day-3",
+    "scene": "cloudy",
+    "tod": "day",
+    "file": "assets/bg/cloudy-day-3.webp",
+    "bytes": 151460
+  },
+  {
+    "id": "cloudy-sunset-1",
+    "scene": "cloudy",
+    "tod": "sunset",
+    "file": "assets/bg/cloudy-sunset-1.webp",
+    "bytes": 77840
+  },
+  {
+    "id": "cloudy-sunset-2",
+    "scene": "cloudy",
+    "tod": "sunset",
+    "file": "assets/bg/cloudy-sunset-2.webp",
+    "bytes": 173426
+  },
+  {
+    "id": "cloudy-night-1",
+    "scene": "cloudy",
+    "tod": "night",
+    "file": "assets/bg/cloudy-night-1.webp",
+    "bytes": 146540
+  },
+  {
+    "id": "rain-dawn-1",
+    "scene": "rain",
+    "tod": "dawn",
+    "file": "assets/bg/rain-dawn-1.webp",
+    "bytes": 298026
+  },
+  {
+    "id": "rain-day-1",
+    "scene": "rain",
+    "tod": "day",
+    "file": "assets/bg/rain-day-1.webp",
+    "bytes": 149942
+  },
+  {
+    "id": "rain-day-2",
+    "scene": "rain",
+    "tod": "day",
+    "file": "assets/bg/rain-day-2.webp",
+    "bytes": 151050
+  },
+  {
+    "id": "rain-day-3",
+    "scene": "rain",
+    "tod": "day",
+    "file": "assets/bg/rain-day-3.webp",
+    "bytes": 124982
+  },
+  {
+    "id": "rain-sunset-1",
+    "scene": "rain",
+    "tod": "sunset",
+    "file": "assets/bg/rain-sunset-1.webp",
+    "bytes": 101102
+  },
+  {
+    "id": "rain-night-1",
+    "scene": "rain",
+    "tod": "night",
+    "file": "assets/bg/rain-night-1.webp",
+    "bytes": 125700
+  },
+  {
+    "id": "rain-night-2",
+    "scene": "rain",
+    "tod": "night",
+    "file": "assets/bg/rain-night-2.webp",
+    "bytes": 181400
+  },
+  {
+    "id": "storm-dawn-1",
+    "scene": "storm",
+    "tod": "dawn",
+    "file": "assets/bg/storm-dawn-1.webp",
+    "bytes": 173426
+  },
+  {
+    "id": "storm-day-1",
+    "scene": "storm",
+    "tod": "day",
+    "file": "assets/bg/storm-day-1.webp",
+    "bytes": 101102
+  },
+  {
+    "id": "storm-day-2",
+    "scene": "storm",
+    "tod": "day",
+    "file": "assets/bg/storm-day-2.webp",
+    "bytes": 124354
+  },
+  {
+    "id": "storm-sunset-1",
+    "scene": "storm",
+    "tod": "sunset",
+    "file": "assets/bg/storm-sunset-1.webp",
+    "bytes": 77840
+  },
+  {
+    "id": "storm-night-1",
+    "scene": "storm",
+    "tod": "night",
+    "file": "assets/bg/storm-night-1.webp",
+    "bytes": 146540
+  },
+  {
+    "id": "storm-night-2",
+    "scene": "storm",
+    "tod": "night",
+    "file": "assets/bg/storm-night-2.webp",
+    "bytes": 116224
+  },
+  {
+    "id": "fog-dawn-1",
+    "scene": "fog",
+    "tod": "dawn",
+    "file": "assets/bg/fog-dawn-1.webp",
+    "bytes": 141280
+  },
+  {
+    "id": "fog-dawn-2",
+    "scene": "fog",
+    "tod": "dawn",
+    "file": "assets/bg/fog-dawn-2.webp",
+    "bytes": 59056
+  },
+  {
+    "id": "fog-day-1",
+    "scene": "fog",
+    "tod": "day",
+    "file": "assets/bg/fog-day-1.webp",
+    "bytes": 216938
+  },
+  {
+    "id": "fog-day-2",
+    "scene": "fog",
+    "tod": "day",
+    "file": "assets/bg/fog-day-2.webp",
+    "bytes": 127152
+  },
+  {
+    "id": "fog-sunset-1",
+    "scene": "fog",
+    "tod": "sunset",
+    "file": "assets/bg/fog-sunset-1.webp",
+    "bytes": 299616
+  },
+  {
+    "id": "fog-night-1",
+    "scene": "fog",
+    "tod": "night",
+    "file": "assets/bg/fog-night-1.webp",
+    "bytes": 139372
+  }
+]

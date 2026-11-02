@@ -1,0 +1,12 @@
+node_modules
+dist
+shots
+raw-bg
+.DS_Store
+*.local
+.env
+.env.*
+.flypod
+.cursor
+scripts-shot-*.mjs
+scripts-dl-bgs.mjs
