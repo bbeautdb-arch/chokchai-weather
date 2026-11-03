@@ -498,16 +498,33 @@ export function formatHourLabel(iso: string): string {
   return `${String(h).padStart(2, '0')}:${mm.slice(0, 2).padStart(2, '0')}`
 }
 
-/** One plain-language Thai line for the next few hours. */
-export function summarizeUpcomingRain(points: HourlyPoint[]): string {
+export interface UpcomingRain {
+  /** Peak chance inside the same hourly window the chart draws. */
+  pct: number
+  /** Hour label of that peak, e.g. 14:00 or 14:00–16:00. Empty when there is no window. */
+  when: string
+  summary: string
+  caution: boolean
+}
+
+/** Single rain figure for the header badge and the hourly peak box. */
+export function upcomingRain(points: HourlyPoint[]): UpcomingRain {
   const hours = points.length
-  if (!hours) return 'ยังไม่มีข้อมูลช่วงข้างหน้า'
+  if (!hours) {
+    return { pct: 0, when: '', summary: 'ยังไม่มีข้อมูลช่วงข้างหน้า', caution: false }
+  }
   let max = points[0]
   for (const p of points) {
     if (p.precipProb > max.precipProb) max = p
   }
+  const pct = Math.round(max.precipProb)
   if (max.precipProb < 30) {
-    return `ช่วง ${hours} ชม. ข้างหน้าไม่น่ามีฝน`
+    return {
+      pct,
+      when: '',
+      summary: `ช่วง ${hours} ชม. ข้างหน้าไม่น่ามีฝน`,
+      caution: false,
+    }
   }
   const threshold = Math.max(30, max.precipProb - 15)
   const peakIdx = points.findIndex((p) => p.time === max.time)
@@ -518,7 +535,17 @@ export function summarizeUpcomingRain(points: HourlyPoint[]): string {
   const a = formatHourLabel(points[lo].time)
   const b = formatHourLabel(points[hi].time)
   const when = lo === hi ? a : `${a}–${b}`
-  return `ฝนมีโอกาสตกมากสุดช่วง ${when} (${Math.round(max.precipProb)}%)`
+  return {
+    pct,
+    when,
+    summary: `ฝนมีโอกาสตกมากสุดช่วง ${when} (${pct}%)`,
+    caution: true,
+  }
+}
+
+/** One plain-language Thai line for the next few hours. */
+export function summarizeUpcomingRain(points: HourlyPoint[]): string {
+  return upcomingRain(points).summary
 }
 
 export function chartWindow(hourly: HourlyPoint[], fromHour: number, count = 9): HourlyPoint[] {

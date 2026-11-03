@@ -136,18 +136,18 @@ export default function App() {
               </div>
             </div>
             <div className="text-right">
-              <p className="font-label tabular text-[13px] text-[var(--ink)]">{formatBangkokNow()}</p>
-              <p className="font-label text-[13px] text-[var(--ink-muted)]">{statusText}</p>
-              {updatedLabel && <p className="font-label text-[13px] text-[var(--ink-muted)]">{updatedLabel}</p>}
+              <p className="font-label tabular text-[15px] text-[var(--ink)]">{formatBangkokNow()}</p>
+              <p className="font-label flex items-center justify-end gap-1.5 text-[15px] text-[var(--ink)]">
+                <span>{statusText}</span>
+                {sample && <span className="sample-badge">ตัวอย่าง</span>}
+              </p>
+              {updatedLabel && <p className="font-label text-[15px] text-[var(--ink-muted)]">{updatedLabel}</p>}
             </div>
           </div>
           {displayData ? (
-            <AnswerHero data={displayData} storm={storm} sample={sample} compact />
+            <AnswerHero data={displayData} storm={storm} compact />
           ) : (
             <div className="h-16 animate-pulse rounded-xl bg-white/40" />
-          )}
-          {sample && (
-            <p className="font-label mt-2 text-[13px] text-[var(--ink-muted)]">ตัวอย่าง</p>
           )}
         </header>
 
@@ -167,34 +167,29 @@ export default function App() {
           </div>
         )}
 
-        <div className="md:grid md:grid-cols-[340px_minmax(0,1fr)] md:items-start md:gap-6">
-          <aside className="glass sticky top-6 mb-4 hidden p-5 md:block">
-            <div className="mb-4 flex items-center gap-3">
+        <div className="md:grid md:grid-cols-[420px_minmax(0,1fr)] md:items-start md:gap-6">
+          <aside className="glass glass-solid sticky top-6 mb-4 hidden p-5 md:block">
+            <div className="flex items-center gap-3">
               <BrandMark scene={markScene} night={markNight} />
               <div>
                 <h1 className="font-display text-[22px] font-semibold text-[var(--ink)]">อากาศโชคชัย</h1>
-                <p className="font-label text-[13px] text-[var(--ink-muted)]">{formatBangkokNow()}</p>
-                <p className="font-label text-[13px] text-[var(--ink-muted)]">{statusText}</p>
-                {updatedLabel && <p className="font-label text-[13px] text-[var(--ink-muted)]">{updatedLabel}</p>}
+                <p className="font-label text-[15px] text-[var(--ink)]">{formatBangkokNow()}</p>
+                <p className="font-label flex flex-wrap items-center gap-1.5 text-[15px] text-[var(--ink)]">
+                  <span>{statusText}</span>
+                  {sample && <span className="sample-badge">ตัวอย่าง</span>}
+                </p>
+                {updatedLabel && <p className="font-label text-[15px] text-[var(--ink)]">{updatedLabel}</p>}
               </div>
             </div>
             {displayData ? (
-              <AnswerHero data={displayData} storm={storm} sample={sample} />
+              <AnswerHero data={displayData} storm={storm} />
             ) : (
-              <div className="h-40 animate-pulse rounded-xl bg-white/40" />
+              <div className="mt-4 h-40 animate-pulse rounded-xl bg-white/40" />
             )}
-            <nav className="mt-6 flex flex-col gap-2" aria-label="สารบัญ">
-              <a className="font-label text-[13px] text-[var(--ink)]" href="#details">
-                01 · สภาพตอนนี้
-              </a>
-              <a className="font-label text-[13px] text-[var(--ink)]" href="#hourly">
-                02 · รายชั่วโมง
-              </a>
-            </nav>
           </aside>
 
           <main>
-            {displayData ? <WeatherDetails data={displayData} storm={storm} /> : <WeatherSkeleton />}
+            {displayData ? <WeatherDetails data={displayData} /> : <WeatherSkeleton />}
           </main>
         </div>
       </div>

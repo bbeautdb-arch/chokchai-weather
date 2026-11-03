@@ -49,7 +49,7 @@ export function HourlyChart({ points, nowTime }: Props) {
         </p>
       )}
 
-      <ul className="font-label mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[var(--ink-2)]">
+      <ul className="font-label mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[15px] text-[var(--ink-2)]">
         <li className="inline-flex items-center gap-2">
           <span className="inline-block h-[3px] w-5 rounded-full" style={{ background: 'var(--chart)' }} />
           อุณหภูมิ (°C)
@@ -189,8 +189,8 @@ function HourLabels({ points, nowTime }: { points: HourlyPoint[]; nowTime?: stri
         const now = p.time === nowTime
         return (
           <div key={`h-${p.time}`} className="text-center leading-tight">
-            <div className="font-label text-[13px] tabular text-[var(--ink-2)]">{formatHourLabel(p.time)}</div>
-            {now && <div className="font-label text-[13px] text-[var(--ink)]">ตอนนี้</div>}
+            <div className="font-label text-[15px] tabular text-[var(--ink-2)]">{formatHourLabel(p.time)}</div>
+            {now && <div className="font-label text-[15px] text-[var(--ink)]">ตอนนี้</div>}
           </div>
         )
       })}
