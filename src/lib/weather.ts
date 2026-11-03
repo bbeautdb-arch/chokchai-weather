@@ -122,6 +122,13 @@ export function isNightTime(tod: TimeOfDay): boolean {
   return tod === 'night'
 }
 
+/** Heavy rain and thunderstorms — the only conditions that switch on the storm skin. */
+export const STORM_CODES = [65, 82, 95, 96, 99] as const
+
+export function isStormCode(code: number): boolean {
+  return (STORM_CODES as readonly number[]).includes(code)
+}
+
 /** User-facing condition. Night never says แดด and never uses a daytime sun phrase. */
 export function conditionLabelFor(scene: SceneKey, code: number, tod: TimeOfDay = 'day'): string {
   if (isNightTime(tod)) return nightConditionLabel(scene, code)
