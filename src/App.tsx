@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useWeather } from './hooks/useWeather'
 import {
   formatBangkokNow,
@@ -8,6 +8,7 @@ import {
   bangkokHourNow,
   conditionLabelFor,
   isStormCode,
+  backgroundById,
   type SceneKey,
   type TimeOfDay,
 } from './lib/weather'
@@ -34,9 +35,10 @@ export default function App() {
       const validScene = scene && ['sunny', 'partly', 'cloudy', 'rain', 'storm', 'fog'].includes(scene) ? scene : null
       const validTod = tod && ['dawn', 'day', 'sunset', 'night'].includes(tod) ? tod : null
       const validMode = mode === 'storm' || mode === 'calm' ? mode : null
-      return { scene: validScene, tod: validTod, mode: validMode }
+      const plate = backgroundById(q.get('plate') ?? '')
+      return { scene: validScene, tod: validTod, mode: validMode, plate }
     } catch {
-      return { scene: null, tod: null, mode: null as 'storm' | 'calm' | null }
+      return { scene: null, tod: null, mode: null as 'storm' | 'calm' | null, plate: null as string | null }
     }
   }, [])
 
@@ -93,13 +95,67 @@ export default function App() {
   const updatedLabel = displayData?.fetchedAt ? `อัปเดต ${formatUpdatedAt(displayData.fetchedAt)} น.` : null
   const markScene = displayData?.scene ?? overrideScene ?? 'partly'
   const markNight = (displayData?.timeOfDay ?? demo.tod) === 'night'
-  const pageBg = displayData?.backgroundUrl ?? bg
+  const pageBg = demo.plate ?? displayData?.backgroundUrl ?? bg
   const statusText =
     weather.status === 'error' && !weather.stale
       ? 'โหลดไม่สำเร็จ'
       : showStaleBanner || (weather.status === 'ready' && weather.fromCache)
         ? 'ข้อมูลที่บันทึกไว้'
         : 'ข้อมูลสด'
+
+  useEffect(() => {
+    let cancelled = false
+    const img = new Image()
+    img.decoding = 'async'
+    img.src = pageBg
+    img.onload = () => {
+      if (cancelled) return
+      const w = 32
+      const h = 32
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) return
+      ctx.drawImage(img, 0, 0, w, h)
+      const px = ctx.getImageData(0, 0, w, h).data
+      const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+      let sum = 0
+      const n = w * h
+      for (let i = 0; i < px.length; i += 4) {
+        sum += 0.2126 * lin(px[i] / 255) + 0.7152 * lin(px[i + 1] / 255) + 0.0722 * lin(px[i + 2] / 255)
+      }
+      const L = sum / n
+      const t = Math.min(1, Math.max(0, (L - 0.08) / 0.64))
+      const scrim = 0.2 + t * 0.18
+      const frost = 0.82 - t * 0.24
+      const page = document.querySelector('.page')
+      if (!(page instanceof HTMLElement)) return
+      page.style.setProperty('--scrim', scrim.toFixed(3))
+      page.style.setProperty('--frost', frost.toFixed(3))
+      page.setAttribute('data-lum', L.toFixed(3))
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [pageBg])
+
+  useEffect(() => {
+    const header = document.querySelector('[data-sticky]')
+    if (!header) return
+    let ticking = false
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        header.classList.toggle('is-scrolled', window.scrollY > 8)
+        ticking = false
+      })
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [displayData])
 
   return (
     <div
@@ -132,7 +188,7 @@ export default function App() {
               <BrandMark scene={markScene} night={markNight} />
               <div className="min-w-0">
                 <h1 className="font-display truncate text-[18px] font-semibold text-[var(--ink)]">อากาศโชคชัย</h1>
-                <p className="font-label text-[13px] text-[var(--ink-muted)]">นครราชสีมา</p>
+                <p data-measure="meta" className="font-label text-[15px] text-[var(--ink-muted)]">นครราชสีมา</p>
               </div>
             </div>
             <div className="text-right">
@@ -149,6 +205,7 @@ export default function App() {
           ) : (
             <div className="h-16 animate-pulse rounded-xl bg-white/40" />
           )}
+          <div className="scroll-edge" aria-hidden="true" />
         </header>
 
         {weather.status === 'error' && (
