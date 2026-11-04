@@ -291,10 +291,27 @@ export function pickBackground(scene: SceneKey, tod: TimeOfDay, seed?: string): 
     ? byScene
     : all.filter((b) => b.scene === 'cloudy' && b.tod === 'day')
   if (!pool.length) return assetUrl('assets/bg/cloudy-day-1.webp')
+  if (seed === 'demo') {
+    const brightestId =
+      scene === 'sunny' && tod === 'day'
+        ? 'sunny-day-3'
+        : scene === 'sunny' && tod === 'dawn'
+          ? 'sunny-dawn-1'
+          : scene === 'sunny' && tod === 'sunset'
+            ? 'sunny-sunset-2'
+            : null
+    const bright = brightestId ? all.find((b) => b.id === brightestId) : undefined
+    if (bright) return assetUrl(bright.file)
+  }
   const key = `${seed ?? ''}|${scene}|${tod}|${Math.floor(Date.now() / 3_600_000)}`
   let h = 0
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0
   return assetUrl(pool[h % pool.length].file)
+}
+
+export function backgroundById(id: string): string | null {
+  const hit = (bgManifest as BgEntry[]).find((b) => b.id === id)
+  return hit ? assetUrl(hit.file) : null
 }
 
 /** @deprecated use pickBackground — kept for callers that only know scene */

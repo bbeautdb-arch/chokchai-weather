@@ -70,12 +70,12 @@ export function AnswerHero({
         <WeatherIcon scene={data.scene} night={night} className="h-11 w-11 shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <span className="font-display tabular text-[40px] font-bold leading-none text-[var(--ink)]">{temp}°</span>
-            <span className="truncate text-[15px] font-semibold leading-snug text-[var(--ink)]">{data.conditionLabel}</span>
+            <span data-measure="hero" className="font-display tabular text-[40px] font-bold leading-none text-[var(--ink)]">{temp}°</span>
+            <span data-measure="condition" className="truncate text-[15px] font-semibold leading-snug text-[var(--ink)]">{data.conditionLabel}</span>
           </div>
           <p className="mt-1 text-[15px] font-semibold">
             {showCaution ? (
-              <span className="caution px-2.5 py-1 text-[15px]">
+              <span data-measure="badge" className="caution px-2.5 py-1 text-[15px]">
                 <DropIcon />
                 {badge}
               </span>
@@ -95,10 +95,10 @@ export function AnswerHero({
     <div className="mt-4">
       <div className="flex items-center gap-3">
         <WeatherIcon scene={data.scene} night={night} className="h-24 w-24 shrink-0" />
-        <p className="font-display tabular text-[96px] font-bold leading-none text-[var(--ink)]">{temp}°</p>
+        <p data-measure="hero" className="font-display tabular text-[96px] font-bold leading-none text-[var(--ink)]">{temp}°</p>
       </div>
-      <p className="mt-3 text-[18px] font-semibold leading-snug text-[var(--ink)]">{data.conditionLabel}</p>
-      <p className="mt-2 text-[16px] font-semibold text-[var(--ink)]">
+      <p data-measure="condition" className="mt-3 text-[18px] font-semibold leading-snug text-[var(--ink)]">{data.conditionLabel}</p>
+      <p data-measure="body" className="mt-2 text-[16px] font-semibold text-[var(--ink)]">
         สูงสุด {Math.round(data.daily.tempMax)}° · ต่ำสุด {Math.round(data.daily.tempMin)}°
       </p>
       <p className="text-[16px] font-semibold text-[var(--ink)]">
@@ -106,7 +106,7 @@ export function AnswerHero({
       </p>
       <p className="mt-3 text-[16px] font-semibold">
         {showCaution ? (
-          <span className="caution">
+          <span data-measure="badge" className="caution">
             <DropIcon />
             {badge}
           </span>
@@ -124,7 +124,7 @@ export function AnswerHero({
 function StatRow({ label, value, icon }: { label: string; value: string; icon?: ReactNode }) {
   return (
     <div className="row">
-      <span className="inline-flex items-center gap-2 text-[var(--ink)]">
+      <span data-measure="body" className="inline-flex items-center gap-2 text-[var(--ink)]">
         {icon}
         {label}
       </span>
