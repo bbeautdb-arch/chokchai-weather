@@ -33,13 +33,12 @@ export function BrandMark({ scene, night }: { scene: SceneKey; night: boolean })
     <span
       className="mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[14px] shadow-[0_8px_16px_rgba(20,40,60,0.28)]"
       style={{
-        background: night
-          ? 'linear-gradient(160deg, #243e5c 0%, #101a2c 100%)'
-          : 'linear-gradient(160deg, #fff4cc 0%, #8ec8f5 55%, #3d7eb8 100%)',
+        background: night ? '#1c1917' : '#f4efe6',
+        color: night ? '#f6f1e7' : '#1c1917',
       }}
       aria-hidden="true"
     >
-      <WeatherIcon scene={scene} night={night} className="h-10 w-10" />
+      <WeatherIcon scene={scene} night={night} className="mono-wx h-10 w-10" />
     </span>
   )
 }

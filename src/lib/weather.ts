@@ -32,9 +32,15 @@ export interface CurrentWeather {
 export interface HourlyPoint {
   time: string
   hour: number
-  temperature: number
-  precipProb: number
-  weatherCode: number
+  temperature: number | null
+  precipProb: number | null
+  weatherCode: number | null
+  isDay: boolean | null
+  apparentTemperature: number | null
+  humidity: number | null
+  windSpeed: number | null
+  precipitation: number | null
+  cloudCover: number | null
 }
 
 export interface DailySummary {
@@ -58,6 +64,8 @@ export interface WeatherBundle {
   isDay: boolean
   sunrise: string | null
   sunset: string | null
+  /** Local sunrise/sunset keyed by YYYY-MM-DD so tomorrow hours stay correct. */
+  sunByDate: Record<string, { sunrise: string; sunset: string }>
 }
 
 type BgEntry = { id: string; scene: string; tod: string; file: string; bytes: number }
@@ -282,7 +290,7 @@ export function resolveTimeOfDay(
 }
 
 /** Stable-ish random pick among matching scene+tod; falls back to scene-any, then cloudy-day. */
-export function pickBackground(scene: SceneKey, tod: TimeOfDay, seed?: string): string {
+export function pickBackground(scene: SceneKey, tod: TimeOfDay, seed?: string, stable = false): string {
   const all = bgManifest as BgEntry[]
   const exact = all.filter((b) => b.scene === scene && b.tod === tod)
   const sameTod = all.filter((b) => b.tod === tod)
@@ -303,7 +311,8 @@ export function pickBackground(scene: SceneKey, tod: TimeOfDay, seed?: string): 
     const bright = brightestId ? all.find((b) => b.id === brightestId) : undefined
     if (bright) return assetUrl(bright.file)
   }
-  const key = `${seed ?? ''}|${scene}|${tod}|${Math.floor(Date.now() / 3_600_000)}`
+  const bucket = stable ? 'fixed' : String(Math.floor(Date.now() / 3_600_000))
+  const key = `${seed ?? ''}|${scene}|${tod}|${bucket}`
   let h = 0
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0
   return assetUrl(pool[h % pool.length].file)
@@ -315,6 +324,60 @@ export function backgroundById(id: string): string | null {
 }
 
 /** @deprecated use pickBackground — kept for callers that only know scene */
+export function timeOfDayForHour(
+  point: HourlyPoint,
+  sunByDate: Record<string, { sunrise: string; sunset: string }>,
+): TimeOfDay {
+  const sun = sunByDate[point.time.slice(0, 10)]
+  if (point.isDay === false) return 'night'
+  if (point.isDay === true && sun) {
+    const mid = isoStamp(point.time) + 30 * 60_000
+    const rise = isoStamp(sun.sunrise)
+    const set = isoStamp(sun.sunset)
+    if (mid >= rise - 20 * 60_000 && mid < rise + 70 * 60_000) return 'dawn'
+    if (mid >= set - 50 * 60_000 && mid < set + 40 * 60_000) return 'sunset'
+    if (mid < rise || mid >= set) return 'night'
+    return 'day'
+  }
+  if (point.isDay === true) {
+    if (point.hour < 8) return 'dawn'
+    if (point.hour >= 17) return 'sunset'
+    return 'day'
+  }
+  if (point.hour >= 19 || point.hour < 5) return 'night'
+  if (point.hour < 8) return 'dawn'
+  if (point.hour >= 17) return 'sunset'
+  return 'day'
+}
+
+export function presentHour(
+  point: HourlyPoint,
+  sunByDate: Record<string, { sunrise: string; sunset: string }>,
+): { scene: SceneKey; tod: TimeOfDay; night: boolean; label: string; backgroundUrl: string } {
+  const tod = timeOfDayForHour(point, sunByDate)
+  if (point.weatherCode == null) {
+    return {
+      scene: 'cloudy',
+      tod,
+      night: tod === 'night',
+      label: 'ไม่มีข้อมูลสภาพอากาศ',
+      backgroundUrl: pickBackground('cloudy', tod, point.time, true),
+    }
+  }
+  const scene = weatherCodeToScene(point.weatherCode, {
+    precipitationMm: point.precipitation ?? 0,
+    cloudCover: point.cloudCover ?? undefined,
+    hourPrecipProb: point.precipProb ?? 0,
+  })
+  return {
+    scene,
+    tod,
+    night: tod === 'night',
+    label: conditionLabelFor(scene, point.weatherCode, tod),
+    backgroundUrl: pickBackground(scene, tod, point.time, true),
+  }
+}
+
 export function sceneBackgroundUrl(scene: SceneKey): string {
   return pickBackground(scene, timeOfDayFromHour(bangkokHourNow()))
 }
@@ -326,14 +389,15 @@ export function buildOpenMeteoUrl(host = 'api.open-meteo.com'): string {
     timezone: CHOKCHAI.timezone,
     current:
       'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,wind_speed_10m,is_day',
-    hourly: 'temperature_2m,precipitation_probability,weather_code,is_day',
+    hourly:
+      'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,precipitation_probability,weather_code,cloud_cover,wind_speed_10m,is_day',
     daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,sunrise,sunset',
     forecast_days: '2',
   })
   return `https://${host}/v1/forecast?${params}`
 }
 
-const CACHE_KEY = 'chokchai-weather-v2'
+const CACHE_KEY = 'chokchai-weather-v3'
 const FETCH_TIMEOUT_MS = 15_000
 
 async function fetchWithTimeout(url: string, ms = FETCH_TIMEOUT_MS): Promise<Response> {
@@ -351,17 +415,29 @@ function num(v: unknown): number {
   return Number.isFinite(n) ? n : 0
 }
 
+function numOrNull(v: unknown): number | null {
+  if (v == null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
 function parsePayload(data: unknown): WeatherBundle {
   const d = data as {
     current: Record<string, number | string>
     hourly: {
       time: string[]
-      temperature_2m: number[]
+      temperature_2m: Array<number | null>
+      apparent_temperature?: Array<number | null>
+      relative_humidity_2m?: Array<number | null>
+      precipitation?: Array<number | null>
       precipitation_probability: Array<number | null>
-      weather_code: number[]
-      is_day?: number[]
+      weather_code: Array<number | null>
+      cloud_cover?: Array<number | null>
+      wind_speed_10m?: Array<number | null>
+      is_day?: Array<number | null>
     }
     daily: {
+      time?: string[]
       temperature_2m_max: number[]
       temperature_2m_min: number[]
       precipitation_probability_max: number[]
@@ -384,12 +460,19 @@ function parsePayload(data: unknown): WeatherBundle {
 
   const hourly: HourlyPoint[] = d.hourly.time.map((t: string, i: number) => {
     const hour = Number(t.slice(11, 13))
+    const dayFlag = d.hourly.is_day?.[i]
     return {
       time: t,
       hour: hour === 24 ? 0 : hour,
-      temperature: num(d.hourly.temperature_2m[i]),
-      precipProb: num(d.hourly.precipitation_probability[i]),
-      weatherCode: num(d.hourly.weather_code[i]),
+      temperature: numOrNull(d.hourly.temperature_2m[i]),
+      precipProb: numOrNull(d.hourly.precipitation_probability[i]),
+      weatherCode: numOrNull(d.hourly.weather_code[i]),
+      isDay: dayFlag == null ? null : Number(dayFlag) === 1,
+      apparentTemperature: numOrNull(d.hourly.apparent_temperature?.[i]),
+      humidity: numOrNull(d.hourly.relative_humidity_2m?.[i]),
+      windSpeed: numOrNull(d.hourly.wind_speed_10m?.[i]),
+      precipitation: numOrNull(d.hourly.precipitation?.[i]),
+      cloudCover: numOrNull(d.hourly.cloud_cover?.[i]),
     }
   })
 
@@ -403,6 +486,13 @@ function parsePayload(data: unknown): WeatherBundle {
   const isDay = num(d.current.is_day) === 1
   const sunrise = d.daily.sunrise?.[0] ?? null
   const sunset = d.daily.sunset?.[0] ?? null
+  const sunByDate: Record<string, { sunrise: string; sunset: string }> = {}
+  const sunDates = d.daily.time ?? []
+  ;(d.daily.sunrise ?? []).forEach((rise, i) => {
+    const set = d.daily.sunset?.[i]
+    const key = sunDates[i] ?? rise.slice(0, 10)
+    if (rise && set) sunByDate[key] = { sunrise: rise, sunset: set }
+  })
   const nowStamp = bangkokStamp()
   const hourPoint =
     hourly.find((h) => {
@@ -430,6 +520,7 @@ function parsePayload(data: unknown): WeatherBundle {
     isDay,
     sunrise,
     sunset,
+    sunByDate,
   }
 }
 
@@ -454,6 +545,7 @@ export function loadWeatherCache(): WeatherBundle | null {
     })
     return {
       ...parsed,
+      sunByDate: parsed.sunByDate ?? {},
       timeOfDay: tod,
       conditionLabel: conditionLabelFor(parsed.scene, parsed.current.weatherCode, tod),
       backgroundUrl: pickBackground(parsed.scene, tod, parsed.current.time),
@@ -526,38 +618,40 @@ export interface UpcomingRain {
 
 /** Single rain figure for the header badge and the hourly peak box. */
 export function upcomingRain(points: HourlyPoint[]): UpcomingRain {
-  const hours = points.length
-  if (!hours) {
+  const known = points.filter((p) => p.precipProb != null)
+  if (!points.length) {
     return { pct: 0, when: '', summary: 'ยังไม่มีข้อมูลช่วงข้างหน้า', caution: false }
   }
-  let max = points[0]
-  for (const p of points) {
-    if (p.precipProb > max.precipProb) max = p
+  if (!known.length) {
+    return { pct: 0, when: '', summary: 'ยังไม่มีข้อมูลฝนในช่วงนี้', caution: false }
   }
-  const pct = Math.round(max.precipProb)
-  if (max.precipProb < 30) {
+  let max = known[0]
+  for (const p of known) {
+    if ((p.precipProb ?? -1) > (max.precipProb ?? -1)) max = p
+  }
+  const pct = Math.round(max.precipProb ?? 0)
+  if ((max.precipProb ?? 0) < 30) {
     return {
       pct,
       when: '',
-      summary: `ช่วง ${hours} ชม. ข้างหน้าไม่น่ามีฝน`,
+      summary: `ช่วง ${points.length} ชม. ข้างหน้าไม่น่ามีฝน`,
       caution: false,
     }
   }
-  const threshold = Math.max(30, max.precipProb - 15)
+  const threshold = Math.max(30, (max.precipProb ?? 0) - 15)
   const peakIdx = points.findIndex((p) => p.time === max.time)
   let lo = peakIdx
   let hi = peakIdx
-  while (lo > 0 && points[lo - 1].precipProb >= threshold) lo -= 1
-  while (hi < points.length - 1 && points[hi + 1].precipProb >= threshold) hi += 1
+  while (lo > 0 && (points[lo - 1].precipProb ?? -1) >= threshold) lo -= 1
+  while (hi < points.length - 1 && (points[hi + 1].precipProb ?? -1) >= threshold) hi += 1
   const a = formatHourLabel(points[lo].time)
   const b = formatHourLabel(points[hi].time)
   const when = lo === hi ? a : `${a}–${b}`
-  return {
-    pct,
-    when,
-    summary: `ฝนมีโอกาสตกมากสุดช่วง ${when} (${pct}%)`,
-    caution: true,
-  }
+  const summary =
+    pct >= 60
+      ? `ฝนมีโอกาสตกมากช่วง ${when} (${pct}%)`
+      : `มีโอกาสฝนช่วง ${when} (${pct}%)`
+  return { pct, when, summary, caution: true }
 }
 
 /** One plain-language Thai line for the next few hours. */
@@ -576,7 +670,7 @@ export function chartWindow(hourly: HourlyPoint[], fromHour: number, count = 9):
 
 export function findRainPeak(points: HourlyPoint[]): HourlyPoint | null {
   if (!points.length) return null
-  return points.reduce((best, p) => (p.precipProb > best.precipProb ? p : best), points[0])
+  return points.reduce((best, p) => ((p.precipProb ?? -1) > (best.precipProb ?? -1) ? p : best), points[0])
 }
 
 export function formatBangkokNow(d = new Date()): string {

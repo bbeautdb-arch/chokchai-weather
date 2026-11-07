@@ -70,6 +70,7 @@ body {
   position: relative;
   border-radius: 22px;
   background:
+    linear-gradient(var(--glass-hue, transparent), var(--glass-hue, transparent)),
     linear-gradient(
       155deg,
       rgba(255, 255, 255, var(--frost, 0.68)) 0%,
@@ -261,6 +262,125 @@ body {
 
 .page[data-mode="storm"] .row {
   border-top-color: rgba(246, 241, 231, 0.14);
+}
+
+.caution.is-rain {
+  border-color: rgba(22, 64, 112, 0.28);
+  background: rgba(226, 236, 246, 0.9);
+  color: #163e64;
+}
+
+.caution.is-heat {
+  border-color: rgba(154, 52, 18, 0.28);
+  background: rgba(246, 226, 200, 0.9);
+  color: #9a3412;
+}
+
+.now-btn {
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(28, 25, 23, 0.2);
+  background: rgba(247, 244, 238, 0.9);
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.page[data-mode="storm"] .now-btn {
+  border-color: rgba(246, 241, 231, 0.28);
+  background: rgba(42, 36, 30, 0.9);
+}
+
+.mono-wx {
+  filter: grayscale(1) contrast(1.2);
+}
+
+.time-tint {
+  background: var(--time-tint, transparent);
+}
+
+.page[data-tint="morning"] {
+  --time-tint: rgba(86, 124, 168, 0.1);
+  --glass-hue: rgba(110, 146, 184, 0.05);
+}
+
+.page[data-tint="evening"] {
+  --time-tint: rgba(176, 112, 48, 0.11);
+  --glass-hue: rgba(186, 124, 58, 0.05);
+}
+
+.page[data-tint="night"] {
+  --time-tint: rgba(16, 28, 48, 0.05);
+  --glass-hue: transparent;
+}
+
+.page[data-tint="day"] {
+  --time-tint: transparent;
+  --glass-hue: transparent;
+}
+
+.hour-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hour-row {
+  display: flex;
+}
+
+.hour-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 4px 0 8px;
+  min-height: 44px;
+}
+
+.hour-col.is-selected {
+  background: rgba(28, 25, 23, 0.1);
+  border-radius: 12px;
+}
+
+.tick-stack {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  height: 46px;
+  justify-content: flex-start;
+}
+
+.tick {
+  display: block;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(28, 25, 23, 0.28);
+}
+
+.tick.is-on {
+  background: #1c1917;
+}
+
+.tick-stack.is-strong .tick.is-on {
+  background: #1a4f86;
+}
+
+.temp-line {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .time-tint,
+  .hour-col,
+  .scroll-edge {
+    transition: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

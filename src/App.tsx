@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useWeather } from './hooks/useWeather'
 import {
   formatBangkokNow,
@@ -9,10 +9,24 @@ import {
   conditionLabelFor,
   isStormCode,
   backgroundById,
+  presentHour,
+  upcomingHours,
   type SceneKey,
   type TimeOfDay,
 } from './lib/weather'
-import { AnswerHero, WeatherDetails, WeatherSkeleton } from './components/WeatherCard'
+import {
+  hourRole,
+  windowLength,
+  loadSelection,
+  reconcileSelection,
+  saveSelection,
+  selectHour,
+  thaiWindowSummary,
+  timeTintFor,
+  windowRain,
+  formatHourLabel,
+} from './lib/forecastView'
+import { AnswerHero, WeatherDetails, WeatherSkeleton, type ShownWeather } from './components/WeatherCard'
 import { BrandMark } from './components/WeatherIcon'
 
 const DEMO_CODE: Record<SceneKey, number> = {
@@ -89,13 +103,59 @@ export default function App() {
     }
   }, [liveData, demo.tod, overrideScene])
 
-  const storm = demo.mode === 'calm' ? false : demo.mode === 'storm' || (displayData ? isStormCode(displayData.current.weatherCode) : false)
+  const points = displayData
+    ? upcomingHours(displayData.hourly, windowLength(displayData.current.time))
+    : []
+  const nowPoint = points[0] ?? null
+  const today = nowPoint ? nowPoint.time.slice(0, 10) : ''
+  const [picked, setPicked] = useState<string | null | undefined>(undefined)
+  const stored =
+    picked === undefined ? (typeof window === 'undefined' ? null : loadSelection(window.sessionStorage)) : picked
+  const selectedTime = nowPoint ? reconcileSelection(stored, points, nowPoint.time) : null
+  const chosen = selectedTime ? points.find((p) => p.time === selectedTime) ?? nowPoint : nowPoint
+  const viewingNow = !chosen || !nowPoint || chosen.time === nowPoint.time
+  const presented = chosen && displayData ? presentHour(chosen, displayData.sunByDate ?? {}) : null
+  const shown: ShownWeather | null = displayData && chosen && presented
+    ? {
+        temperature: viewingNow ? displayData.current.temperature : chosen.temperature,
+        condition: viewingNow ? displayData.conditionLabel : presented.label,
+        scene: viewingNow ? displayData.scene : presented.scene,
+        night: viewingNow ? displayData.timeOfDay === 'night' : presented.night,
+        humidity: viewingNow ? displayData.current.humidity : chosen.humidity,
+        wind: viewingNow ? displayData.current.windSpeed : chosen.windSpeed,
+        feels: viewingNow ? displayData.current.apparentTemperature : chosen.apparentTemperature,
+        role: hourRole(chosen, nowPoint?.time ?? chosen.time, today),
+        clock: formatHourLabel(chosen.time),
+        storm: isStormCode(viewingNow ? displayData.current.weatherCode : (chosen.weatherCode ?? -1)),
+      }
+    : null
+  const rain = windowRain(points)
+  const summary = thaiWindowSummary(points)
+  const viewedTod = viewingNow ? (demo.tod ?? displayData?.timeOfDay ?? 'day') : (presented?.tod ?? 'day')
+  const viewedHour =
+    viewingNow && demo.tod
+      ? ({ dawn: 7, day: 12, sunset: 17, night: 23 } as const)[demo.tod]
+      : (chosen?.hour ?? 12)
+  const tint = shown ? timeTintFor(viewedTod, viewedHour) : 'day'
+  const storm = demo.mode === 'calm' ? false : demo.mode === 'storm' || Boolean(shown?.storm)
   const sample = Boolean(demo.scene || demo.tod || demo.mode)
   const showStaleBanner = weather.status === 'error' && Boolean(weather.stale)
   const updatedLabel = displayData?.fetchedAt ? `อัปเดต ${formatUpdatedAt(displayData.fetchedAt)} น.` : null
-  const markScene = displayData?.scene ?? overrideScene ?? 'partly'
-  const markNight = (displayData?.timeOfDay ?? demo.tod) === 'night'
-  const pageBg = demo.plate ?? displayData?.backgroundUrl ?? bg
+  const markScene = shown?.scene ?? displayData?.scene ?? overrideScene ?? 'partly'
+  const markNight = shown?.night ?? (displayData?.timeOfDay ?? demo.tod) === 'night'
+  const pageBg =
+    demo.plate ??
+    (!viewingNow && presented ? presented.backgroundUrl : displayData?.backgroundUrl) ??
+    bg
+  const choose = (time: string) => {
+    const next = selectHour(time, nowPoint?.time ?? null)
+    setPicked(next)
+    saveSelection(window.sessionStorage, next)
+  }
+  const backToNow = () => {
+    setPicked(null)
+    saveSelection(window.sessionStorage, null)
+  }
   const statusText =
     weather.status === 'error' && !weather.stale
       ? 'โหลดไม่สำเร็จ'
@@ -161,14 +221,16 @@ export default function App() {
     <div
       className="page relative min-h-screen"
       data-mode={storm ? 'storm' : 'calm'}
-      data-scene={displayData?.scene ?? scene}
-      data-tod={displayData?.timeOfDay ?? demo.tod ?? ''}
+      data-scene={shown?.scene ?? displayData?.scene ?? scene}
+      data-tod={presented?.tod ?? displayData?.timeOfDay ?? demo.tod ?? ''}
+      data-tint={tint}
       data-bg={pageBg}
     >
       <div
         className="pointer-events-none fixed inset-0 bg-cover bg-center max-md:bg-[position:55%_65%]"
         style={{ backgroundImage: `url(${pageBg})` }}
       />
+      <div className="time-tint pointer-events-none fixed inset-0" />
       <div
         className="pointer-events-none fixed inset-0"
         style={{
@@ -200,8 +262,8 @@ export default function App() {
               {updatedLabel && <p className="font-label text-[15px] text-[var(--ink-muted)]">{updatedLabel}</p>}
             </div>
           </div>
-          {displayData ? (
-            <AnswerHero data={displayData} storm={storm} compact />
+          {displayData && shown ? (
+            <AnswerHero shown={shown} summary={summary} rain={rain} onNow={backToNow} compact />
           ) : (
             <div className="h-16 animate-pulse rounded-xl bg-white/40" />
           )}
@@ -238,15 +300,27 @@ export default function App() {
                 {updatedLabel && <p className="font-label text-[15px] text-[var(--ink)]">{updatedLabel}</p>}
               </div>
             </div>
-            {displayData ? (
-              <AnswerHero data={displayData} storm={storm} />
+            {displayData && shown ? (
+              <AnswerHero shown={shown} summary={summary} rain={rain} onNow={backToNow} />
             ) : (
               <div className="mt-4 h-40 animate-pulse rounded-xl bg-white/40" />
             )}
           </aside>
 
           <main>
-            {displayData ? <WeatherDetails data={displayData} /> : <WeatherSkeleton />}
+            {displayData && shown ? (
+              <WeatherDetails
+                data={displayData}
+                shown={shown}
+                points={points}
+                nowTime={nowPoint?.time ?? null}
+                selectedTime={chosen?.time ?? null}
+                today={today}
+                onSelect={choose}
+              />
+            ) : (
+              <WeatherSkeleton />
+            )}
           </main>
         </div>
       </div>
