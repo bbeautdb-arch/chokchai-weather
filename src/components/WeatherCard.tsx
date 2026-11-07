@@ -1,91 +1,123 @@
 import type { ReactNode } from 'react'
-import type { WeatherBundle } from '../lib/weather'
-import { isNightTime, upcomingHours, upcomingRain } from '../lib/weather'
+import type { HourlyPoint, SceneKey, WeatherBundle } from '../lib/weather'
+import type { HourRole, WindowRain } from '../lib/forecastView'
+import { hourStatusLabel } from '../lib/forecastView'
 import { HourlyChart } from './HourlyChart'
 import { WeatherIcon } from './WeatherIcon'
 
-export function isHeatCaution(data: WeatherBundle): boolean {
-  return data.current.temperature >= 37 || data.current.apparentTemperature >= 40
+function isHeatCaution(temp: number | null, feels: number | null): boolean {
+  return (temp != null && temp >= 37) || (feels != null && feels >= 40)
 }
 
-function windowRain(data: WeatherBundle) {
-  return upcomingRain(upcomingHours(data.hourly, 12))
+export interface ShownWeather {
+  temperature: number | null
+  condition: string
+  scene: SceneKey
+  night: boolean
+  humidity: number | null
+  wind: number | null
+  feels: number | null
+  role: HourRole
+  clock: string
+  storm: boolean
 }
 
-export function WeatherDetails({ data }: { data: WeatherBundle }) {
-  const points = upcomingHours(data.hourly, 12)
-  const nowTime = points[0]?.time ?? null
-  const heat = isHeatCaution(data)
+function rainBadge(rain: WindowRain, storm: boolean): string | null {
+  if (storm) return rain.pct == null ? 'พายุ · อยู่ในที่ร่ม' : `พายุ · ฝน ${rain.pct}% · อยู่ในที่ร่ม`
+  if (rain.strong && rain.pct != null) return `ฝน ${rain.pct}%`
+  return null
+}
 
+export function WeatherDetails({
+  data,
+  shown,
+  points,
+  nowTime,
+  selectedTime,
+  today,
+  onSelect,
+}: {
+  data: WeatherBundle
+  shown: ShownWeather
+  points: HourlyPoint[]
+  nowTime: string | null
+  selectedTime: string | null
+  today: string
+  onSelect: (time: string) => void
+}) {
+  const heat = isHeatCaution(shown.temperature, shown.feels)
   return (
     <article id="details" className="glass glass-solid p-4 md:p-6" aria-label="รายละเอียดอากาศ">
-      <h2 className="font-display text-[18px] font-semibold text-[var(--ink)]">รายละเอียด</h2>
+      <h2 data-measure="glass" className="font-display text-[20px] font-semibold text-[var(--ink)]">รายละเอียด</h2>
+      <p className="mt-1 text-[15px] text-[var(--ink)]">{hourStatusLabel(shown.role)} · {shown.clock}</p>
       <div className="mt-2">
         <StatRow label="สูงสุด / ต่ำสุดวันนี้" value={`${Math.round(data.daily.tempMax)}° / ${Math.round(data.daily.tempMin)}°`} />
-        <StatRow label="ความชื้น" value={`${Math.round(data.current.humidity)}%`} />
-        <StatRow label="ลม" value={`${Math.round(data.current.windSpeed)} กม./ชม.`} />
-        <StatRow label="รู้สึกเหมือน" value={`${Math.round(data.current.apparentTemperature)}°`} />
-        {heat && (
+        {shown.humidity != null && <StatRow label="ความชื้น" value={`${Math.round(shown.humidity)}%`} />}
+        {shown.wind != null && <StatRow label="ลม" value={`${Math.round(shown.wind)} กม./ชม.`} />}
+        {shown.feels != null && <StatRow label="รู้สึกเหมือน" value={`${Math.round(shown.feels)}°`} />}
+        {heat && shown.temperature != null && (
           <div className="mt-3">
-            <p className="caution">
+            <p className="caution is-heat">
               <HeatIcon />
-              <span>
-                อากาศร้อนจัด {Math.round(data.current.temperature)}° · หลบแดดและดื่มน้ำ
-              </span>
+              <span>อากาศร้อนจัด {Math.round(shown.temperature)}° · หลบแดดและดื่มน้ำ</span>
             </p>
           </div>
         )}
       </div>
       <div className="mt-6">
-        <HourlyChart points={points} nowTime={nowTime} />
+        <HourlyChart
+          points={points}
+          nowTime={nowTime}
+          selectedTime={selectedTime}
+          today={today}
+          onSelect={onSelect}
+        />
       </div>
     </article>
   )
 }
 
-function rainBadge(pct: number, storm: boolean, caution: boolean): string {
-  if (storm) return `พายุ · ฝน ${pct}% · อยู่ในที่ร่ม`
-  if (caution) return `โอกาสฝน ${pct}%`
-  return '12 ชม. ไม่น่ามีฝน'
-}
-
 export function AnswerHero({
-  data,
-  storm,
+  shown,
+  summary,
+  rain,
   compact = false,
+  onNow,
 }: {
-  data: WeatherBundle
-  storm: boolean
+  shown: ShownWeather
+  summary: string
+  rain: WindowRain
   compact?: boolean
+  onNow: () => void
 }) {
-  const night = isNightTime(data.timeOfDay)
-  const rain = windowRain(data)
-  const showCaution = storm || rain.caution
-  const badge = rainBadge(rain.pct, storm, rain.caution)
-  const temp = Math.round(data.current.temperature)
+  const badge = rainBadge(rain, shown.storm)
+  const temp = shown.temperature == null ? '—' : `${Math.round(shown.temperature)}°`
+  const cautionClass = shown.storm ? 'caution is-heat' : rain.strong ? 'caution is-rain' : 'caution'
 
   if (compact) {
     return (
       <div className="flex items-center gap-3">
-        <WeatherIcon scene={data.scene} night={night} className="h-11 w-11 shrink-0" />
+        <WeatherIcon scene={shown.scene} night={shown.night} className="mono-wx h-11 w-11 shrink-0" />
         <div className="min-w-0 flex-1">
+          <p className="font-label text-[15px] text-[var(--ink)]">{hourStatusLabel(shown.role)} · {shown.clock}</p>
           <div className="flex items-baseline gap-2">
-            <span data-measure="hero" className="font-display tabular text-[40px] font-bold leading-none text-[var(--ink)]">{temp}°</span>
-            <span data-measure="condition" className="truncate text-[15px] font-semibold leading-snug text-[var(--ink)]">{data.conditionLabel}</span>
+            <span data-measure="hero" className="font-display tabular text-[40px] font-bold leading-none text-[var(--ink)]">{temp}</span>
+            <span data-measure="condition" className="truncate text-[15px] leading-snug text-[var(--ink)]">{shown.condition}</span>
           </div>
-          <p className="mt-1 text-[15px] font-semibold">
-            {showCaution ? (
-              <span data-measure="badge" className="caution px-2.5 py-1 text-[15px]">
+          <p data-measure="body" className="mt-1 text-[15px] leading-snug text-[var(--ink)]">{summary}</p>
+          {badge && (
+            <p className="mt-1">
+              <span data-measure="badge" className={`${cautionClass} px-2.5 py-1 text-[15px]`}>
                 <DropIcon />
                 {badge}
               </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-[var(--ink)]">
-                <DropIcon />
-                {badge}
-              </span>
-            )}
-          </p>
+            </p>
+          )}
+          {shown.role !== 'now' && (
+            <button type="button" className="now-btn mt-2" onClick={onNow}>
+              ตอนนี้
+            </button>
+          )}
         </div>
       </div>
     )
@@ -93,30 +125,26 @@ export function AnswerHero({
 
   return (
     <div className="mt-4">
-      <div className="flex items-center gap-3">
-        <WeatherIcon scene={data.scene} night={night} className="h-24 w-24 shrink-0" />
-        <p data-measure="hero" className="font-display tabular text-[96px] font-bold leading-none text-[var(--ink)]">{temp}°</p>
+      <p className="font-label text-[15px] text-[var(--ink)]">{hourStatusLabel(shown.role)} · {shown.clock}</p>
+      <div className="mt-2 flex items-center gap-3">
+        <WeatherIcon scene={shown.scene} night={shown.night} className="mono-wx h-20 w-20 shrink-0" />
+        <p data-measure="hero" className="font-display tabular text-[72px] font-bold leading-none text-[var(--ink)] min-[900px]:text-[88px]">{temp}</p>
       </div>
-      <p data-measure="condition" className="mt-3 text-[18px] font-semibold leading-snug text-[var(--ink)]">{data.conditionLabel}</p>
-      <p data-measure="body" className="mt-2 text-[16px] font-semibold text-[var(--ink)]">
-        สูงสุด {Math.round(data.daily.tempMax)}° · ต่ำสุด {Math.round(data.daily.tempMin)}°
-      </p>
-      <p className="text-[16px] font-semibold text-[var(--ink)]">
-        รู้สึกเหมือน {Math.round(data.current.apparentTemperature)}°
-      </p>
-      <p className="mt-3 text-[16px] font-semibold">
-        {showCaution ? (
-          <span data-measure="badge" className="caution">
+      <p data-measure="condition" className="mt-3 text-[18px] leading-snug text-[var(--ink)]">{shown.condition}</p>
+      <p data-measure="body" className="mt-2 text-[16px] leading-snug text-[var(--ink)]">{summary}</p>
+      {badge && (
+        <p className="mt-3 text-[16px] font-semibold">
+          <span data-measure="badge" className={cautionClass}>
             <DropIcon />
             {badge}
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-[var(--ink)]">
-            <DropIcon />
-            {badge}
-          </span>
-        )}
-      </p>
+        </p>
+      )}
+      {shown.role !== 'now' && (
+        <button type="button" className="now-btn mt-3" onClick={onNow}>
+          ตอนนี้
+        </button>
+      )}
     </div>
   )
 }

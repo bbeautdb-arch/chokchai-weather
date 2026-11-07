@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useWeather } from './hooks/useWeather'
 import {
   formatBangkokNow,
@@ -9,10 +9,28 @@ import {
   conditionLabelFor,
   isStormCode,
   backgroundById,
+  presentHour,
+  upcomingHours,
   type SceneKey,
   type TimeOfDay,
 } from './lib/weather'
-import { AnswerHero, WeatherDetails, WeatherSkeleton } from './components/WeatherCard'
+import {
+  applyRainFixture,
+  bangkokWallClock,
+  freshnessLabel,
+  hourRole,
+  windowLength,
+  loadSelection,
+  nightSafeCopy,
+  reconcileSelection,
+  saveSelection,
+  selectHour,
+  thaiWindowSummary,
+  timeTintFor,
+  windowRain,
+  statusClock,
+} from './lib/forecastView'
+import { AnswerHero, WeatherDetails, WeatherSkeleton, type ShownWeather } from './components/WeatherCard'
 import { BrandMark } from './components/WeatherIcon'
 
 const DEMO_CODE: Record<SceneKey, number> = {
@@ -36,9 +54,16 @@ export default function App() {
       const validTod = tod && ['dawn', 'day', 'sunset', 'night'].includes(tod) ? tod : null
       const validMode = mode === 'storm' || mode === 'calm' ? mode : null
       const plate = backgroundById(q.get('plate') ?? '')
-      return { scene: validScene, tod: validTod, mode: validMode, plate }
+      const fixture = q.get('fixture') === 'rain' ? 'rain' : null
+      return { scene: validScene, tod: validTod, mode: validMode, plate, fixture }
     } catch {
-      return { scene: null, tod: null, mode: null as 'storm' | 'calm' | null, plate: null as string | null }
+      return {
+        scene: null,
+        tod: null,
+        mode: null as 'storm' | 'calm' | null,
+        plate: null as string | null,
+        fixture: null as 'rain' | null,
+      }
     }
   }, [])
 
@@ -85,23 +110,81 @@ export default function App() {
       current: { ...liveData.current, weatherCode: code },
       timeOfDay: tod,
       backgroundUrl: pickBackground(nextScene, tod, 'demo'),
-      conditionLabel: conditionLabelFor(nextScene, code, tod),
+      conditionLabel: conditionLabelFor(nextScene, code, tod, {
+        clock: tod === 'dawn' ? '07:00' : tod === 'sunset' ? '17:30' : tod === 'night' ? '23:00' : '12:00',
+        sunrise: liveData.sunrise,
+        uvIndex: null,
+        shortwaveWm2: null,
+      }),
     }
   }, [liveData, demo.tod, overrideScene])
 
-  const storm = demo.mode === 'calm' ? false : demo.mode === 'storm' || (displayData ? isStormCode(displayData.current.weatherCode) : false)
-  const sample = Boolean(demo.scene || demo.tod || demo.mode)
+  const livePoints = displayData
+    ? upcomingHours(displayData.hourly, windowLength(displayData.current.time))
+    : []
+  const points = demo.fixture === 'rain' ? applyRainFixture(livePoints) : livePoints
+  const nowPoint = points[0] ?? null
+  const today = nowPoint ? nowPoint.time.slice(0, 10) : ''
+  const [picked, setPicked] = useState<string | null | undefined>(undefined)
+  const stored =
+    picked === undefined ? (typeof window === 'undefined' ? null : loadSelection(window.sessionStorage)) : picked
+  const selectedTime = nowPoint ? reconcileSelection(stored, points, nowPoint.time) : null
+  const chosen = selectedTime ? points.find((p) => p.time === selectedTime) ?? nowPoint : nowPoint
+  const viewingNow = !chosen || !nowPoint || chosen.time === nowPoint.time
+  const presented = chosen && displayData ? presentHour(chosen, displayData.sunByDate ?? {}) : null
+  const shown: ShownWeather | null = displayData && chosen && presented
+    ? {
+        temperature: viewingNow ? displayData.current.temperature : chosen.temperature,
+        condition: nightSafeCopy(
+          viewingNow ? displayData.conditionLabel : presented.label,
+          (viewingNow ? displayData.timeOfDay === 'night' : presented.night) && !(demo.tod && demo.tod !== 'night'),
+        ),
+        scene: viewingNow ? displayData.scene : presented.scene,
+        night: viewingNow ? displayData.timeOfDay === 'night' : presented.night,
+        humidity: viewingNow ? displayData.current.humidity : chosen.humidity,
+        wind: viewingNow ? displayData.current.windSpeed : chosen.windSpeed,
+        feels: viewingNow ? displayData.current.apparentTemperature : chosen.apparentTemperature,
+        role: hourRole(chosen, nowPoint?.time ?? chosen.time, today),
+        clock: statusClock(
+          hourRole(chosen, nowPoint?.time ?? chosen.time, today),
+          chosen.time,
+          bangkokWallClock(),
+        ),
+        storm: isStormCode(viewingNow ? displayData.current.weatherCode : (chosen.weatherCode ?? -1)),
+      }
+    : null
+  const rain = windowRain(points)
+  const summary = thaiWindowSummary(points)
+  const viewedTod = viewingNow ? (demo.tod ?? displayData?.timeOfDay ?? 'day') : (presented?.tod ?? 'day')
+  const viewedHour =
+    viewingNow && demo.tod
+      ? ({ dawn: 7, day: 12, sunset: 17, night: 23 } as const)[demo.tod]
+      : (chosen?.hour ?? 12)
+  const tint = shown ? timeTintFor(viewedTod, viewedHour) : 'day'
+  const storm = demo.mode === 'calm' ? false : demo.mode === 'storm' || Boolean(shown?.storm)
+  const sample = Boolean(demo.scene || demo.tod || demo.mode || demo.fixture)
   const showStaleBanner = weather.status === 'error' && Boolean(weather.stale)
   const updatedLabel = displayData?.fetchedAt ? `อัปเดต ${formatUpdatedAt(displayData.fetchedAt)} น.` : null
-  const markScene = displayData?.scene ?? overrideScene ?? 'partly'
-  const markNight = (displayData?.timeOfDay ?? demo.tod) === 'night'
-  const pageBg = demo.plate ?? displayData?.backgroundUrl ?? bg
-  const statusText =
-    weather.status === 'error' && !weather.stale
-      ? 'โหลดไม่สำเร็จ'
-      : showStaleBanner || (weather.status === 'ready' && weather.fromCache)
-        ? 'ข้อมูลที่บันทึกไว้'
-        : 'ข้อมูลสด'
+  const markScene = shown?.scene ?? displayData?.scene ?? overrideScene ?? 'partly'
+  const markNight = shown?.night ?? (displayData?.timeOfDay ?? demo.tod) === 'night'
+  const pageBg =
+    demo.plate ??
+    (!viewingNow && presented ? presented.backgroundUrl : displayData?.backgroundUrl) ??
+    bg
+  const choose = (time: string) => {
+    const next = selectHour(time, nowPoint?.time ?? null)
+    setPicked(next)
+    saveSelection(window.sessionStorage, next)
+  }
+  const backToNow = () => {
+    setPicked(null)
+    saveSelection(window.sessionStorage, null)
+  }
+  const statusText = freshnessLabel({
+    failed: weather.status === 'error',
+    hasStale: showStaleBanner,
+    fromCache: weather.status === 'ready' && Boolean(weather.fromCache),
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -128,7 +211,7 @@ export default function App() {
       const L = sum / n
       const t = Math.min(1, Math.max(0, (L - 0.08) / 0.64))
       const scrim = 0.2 + t * 0.18
-      const frost = 0.82 - t * 0.24
+      const frost = 0.6 - t * 0.15
       const page = document.querySelector('.page')
       if (!(page instanceof HTMLElement)) return
       page.style.setProperty('--scrim', scrim.toFixed(3))
@@ -161,14 +244,17 @@ export default function App() {
     <div
       className="page relative min-h-screen"
       data-mode={storm ? 'storm' : 'calm'}
-      data-scene={displayData?.scene ?? scene}
-      data-tod={displayData?.timeOfDay ?? demo.tod ?? ''}
+      data-scene={shown?.scene ?? displayData?.scene ?? scene}
+      data-tod={presented?.tod ?? displayData?.timeOfDay ?? demo.tod ?? ''}
+      data-tint={tint}
+      data-fixture={demo.fixture ?? ''}
       data-bg={pageBg}
     >
       <div
         className="pointer-events-none fixed inset-0 bg-cover bg-center max-md:bg-[position:55%_65%]"
         style={{ backgroundImage: `url(${pageBg})` }}
       />
+      <div className="time-tint pointer-events-none fixed inset-0" />
       <div
         className="pointer-events-none fixed inset-0"
         style={{
@@ -183,7 +269,7 @@ export default function App() {
           data-sticky="answer"
           className="glass sticky sticky-answer z-30 mb-4 p-3 md:hidden"
         >
-          <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
             <div className="flex min-w-0 items-center gap-2">
               <BrandMark scene={markScene} night={markNight} />
               <div className="min-w-0">
@@ -200,8 +286,8 @@ export default function App() {
               {updatedLabel && <p className="font-label text-[15px] text-[var(--ink-muted)]">{updatedLabel}</p>}
             </div>
           </div>
-          {displayData ? (
-            <AnswerHero data={displayData} storm={storm} compact />
+          {displayData && shown ? (
+            <AnswerHero shown={shown} summary={summary} rain={rain} onNow={backToNow} compact />
           ) : (
             <div className="h-16 animate-pulse rounded-xl bg-white/40" />
           )}
@@ -238,15 +324,27 @@ export default function App() {
                 {updatedLabel && <p className="font-label text-[15px] text-[var(--ink)]">{updatedLabel}</p>}
               </div>
             </div>
-            {displayData ? (
-              <AnswerHero data={displayData} storm={storm} />
+            {displayData && shown ? (
+              <AnswerHero shown={shown} summary={summary} rain={rain} onNow={backToNow} />
             ) : (
               <div className="mt-4 h-40 animate-pulse rounded-xl bg-white/40" />
             )}
           </aside>
 
           <main>
-            {displayData ? <WeatherDetails data={displayData} /> : <WeatherSkeleton />}
+            {displayData && shown ? (
+              <WeatherDetails
+                data={displayData}
+                shown={shown}
+                points={points}
+                nowTime={nowPoint?.time ?? null}
+                selectedTime={chosen?.time ?? null}
+                today={today}
+                onSelect={choose}
+              />
+            ) : (
+              <WeatherSkeleton />
+            )}
           </main>
         </div>
       </div>

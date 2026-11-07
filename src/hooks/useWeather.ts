@@ -77,9 +77,14 @@ export function useWeather(refreshMs = 15 * 60 * 1000): State {
     mounted.current = true
     void load()
     const id = window.setInterval(() => void load({ soft: true }), refreshMs)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load({ soft: true })
+    }
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       mounted.current = false
       window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [load, refreshMs])
 
