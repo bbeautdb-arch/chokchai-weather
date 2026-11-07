@@ -1,5 +1,6 @@
 /** Open-Meteo helpers for Chok Chai, Nakhon Ratchasima */
 
+import { clearSkyPhrase } from './forecastView'
 import bgManifest from '../data/bgManifest.json'
 
 const BASE = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '/')
@@ -161,7 +162,9 @@ export function conditionLabelFor(scene: SceneKey, code: number, tod: TimeOfDay 
     if (wmo && [1, 2].includes(code)) return wmo
     return 'มีเมฆบางส่วน'
   }
+  if (code === 0 && (tod === 'dawn' || scene === 'sunny')) return clearSkyPhrase(tod)
   if (wmo && code === 0) return wmo
+  if (tod === 'dawn') return 'เช้านี้มีเมฆ'
   return 'ท้องฟ้าโปร่ง · แดดจัด'
 }
 

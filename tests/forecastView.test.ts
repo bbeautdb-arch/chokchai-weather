@@ -5,6 +5,7 @@ import {
   hourRole,
   hourStatusLabel,
   bangkokWallClock,
+  clearSkyPhrase,
   freshnessLabel,
   nightSafeCopy,
   rainTickCount,
@@ -149,8 +150,28 @@ describe('summary and tint', () => {
     assert.ok(windowLength('2026-11-08T00:00') >= 30)
   })
 
-  it('dashes only later segments', () => {
-    assert.equal(segmentDash(0, 16), undefined)
-    assert.ok(segmentDash(14, 16)?.includes(' '))
+  it('labels a clear dawn without the harsh sun phrase and keeps night plain', () => {
+    assert.equal(clearSkyPhrase('dawn'), 'เช้านี้ฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase('dawn').includes('แดด'), false)
+    assert.equal(clearSkyPhrase('night'), 'ท้องฟ้าแจ่มใส')
+    assert.equal(clearSkyPhrase('day'), 'ท้องฟ้าโปร่ง · แดดจัด')
+  })
+
+  it('keeps the first six hours solid and later hours on a fixed dash', () => {
+    assert.equal(segmentDash(0, 30), undefined)
+    assert.equal(segmentDash(5, 30), undefined)
+    assert.equal(segmentDash(6, 30), '4 4')
+    assert.equal(segmentDash(20, 16), '4 4')
+  })
+
+  it('fixture rain boundaries stay exact for the badge and round only ticks', () => {
+    const points = [0, 59, 60, 85, 100].map((pct, i) =>
+      hour({ time: `2026-11-08T${String(10 + i).padStart(2, '0')}:00`, precipProb: pct }),
+    )
+    assert.deepEqual(points.map((p) => rainTickCount(p.precipProb)), [0, 6, 6, 9, 10])
+    assert.deepEqual(points.map((p) => rainTicksAreStrong(p.precipProb)), [false, false, true, true, true])
+    assert.equal(windowRain(points).pct, 100)
+    assert.equal(windowRain(points.slice(0, 2)).pct, 59)
+    assert.equal(windowRain(points.slice(0, 2)).strong, false)
   })
 })

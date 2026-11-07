@@ -74,14 +74,37 @@ async function check(name, ok, detail = '') {
   const keyed = await page.locator('[aria-selected="true"]').innerText()
   await check('keyboard moves selection', keyed.length > 0, keyed.replace(/\n/g, ' '))
 
+  await page.evaluate(() => window.scrollTo(0, 520))
+  const stuck = await page.locator('[data-sticky]').evaluate((el) => {
+    const cs = getComputedStyle(el)
+    return {
+      top: Math.round(el.getBoundingClientRect().top),
+      blur: cs.getPropertyValue('backdrop-filter'),
+      webkit: cs.getPropertyValue('-webkit-backdrop-filter'),
+    }
+  })
+  await check('sticky header stays put and keeps blur while scrolling', stuck.top <= 1 && stuck.blur.includes('blur'), JSON.stringify(stuck))
+  await page.screenshot({ path: `${out}/mobile-day-scrolled-360.png` })
+
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.locator('.hour-col').nth(8).click()
   await check('reduced motion still selects', (await page.locator('[aria-selected="true"]').count()) === 1)
   await page.close()
 }
 
+{
+  const page = await open(browser, 390, 844)
+  await page.goto(base, { waitUntil: 'networkidle', timeout: 40000 })
+  await page.locator('.hour-col').first().waitFor({ state: 'visible', timeout: 25000 })
+  const fixture = await page.locator('.page').getAttribute('data-fixture')
+  const text = await page.locator('body').innerText()
+  await check('regular mode does not show the fixture marker', fixture === '' && !text.includes('ตัวอย่าง'), `fixture=${fixture}`)
+  await page.close()
+}
+
 async function shot(name, w, h, query) {
   const page = await open(browser, w, h)
+  if (name.includes('reduced-motion')) await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto(base + query, { waitUntil: 'networkidle', timeout: 40000 })
   await page.locator('.hour-col').first().waitFor({ state: 'visible', timeout: 25000 })
   await page.waitForFunction(() => document.querySelector('.page')?.getAttribute('data-lum'))
@@ -113,6 +136,9 @@ await shot('desktop-evening-1440', 1440, 900, '?scene=sunny&tod=sunset')
 await shot('desktop-night-1440', 1440, 900, '?scene=sunny&tod=night')
 await shot('mobile-midnight-390', 390, 844, '?scene=partly&select=future')
 await shot('mobile-storm-390', 390, 844, '?mode=storm')
+await shot('mobile-fixture-rain-390', 390, 844, '?fixture=rain')
+await shot('desktop-fixture-rain-1440', 1440, 900, '?fixture=rain')
+await shot('mobile-reduced-motion-390', 390, 844, '?scene=sunny&tod=day')
 
 function parseCssColor(str) {
   const m = String(str).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
@@ -184,6 +210,53 @@ async function contrastOf(page, locator, paint, need) {
   }
 }
 
+async function readBlur(page) {
+  return page.evaluate(() => {
+    const read = (sel) => {
+      const el = document.querySelector(sel)
+      if (!el) return null
+      const cs = getComputedStyle(el)
+      return {
+        backdropFilter: cs.getPropertyValue('backdrop-filter'),
+        webkitBackdropFilter: cs.getPropertyValue('-webkit-backdrop-filter'),
+      }
+    }
+    const pageEl = document.querySelector('.page')
+    return {
+      card: read('article.glass-solid'),
+      sticky: read('[data-sticky]'),
+      glass: read('.glass'),
+      frost: pageEl instanceof HTMLElement ? pageEl.style.getPropertyValue('--frost') : '',
+      fixture: pageEl?.getAttribute('data-fixture'),
+    }
+  })
+}
+
+const blurReport = {}
+{
+  const page = await open(browser, 390, 844)
+  await page.goto(base + '?fixture=rain&scene=sunny&tod=dawn', { waitUntil: 'networkidle', timeout: 40000 })
+  await page.locator('.hour-col').first().waitFor({ state: 'visible' })
+  const text = await page.locator('body').innerText()
+  await check('fixture shows example marker', text.includes('ตัวอย่าง'))
+  await check('dawn clear copy avoids harsh sun', text.includes('เช้านี้ฟ้าโปร่ง') && !text.includes('แดดจัด'), text.slice(0, 180).replace(/\n/g, ' | '))
+  await check('fixture keeps exact 60 and 100', text.includes('60%') && text.includes('100%') && text.includes('59%'))
+  blurReport.chrome = await readBlur(page)
+  await page.screenshot({ path: `${out}/mobile-fixture-rain-390.png` })
+  const desk = await open(browser, 1440, 900)
+  await desk.goto(base + '?fixture=rain&scene=sunny&tod=day', { waitUntil: 'networkidle', timeout: 40000 })
+  await desk.locator('.hour-col').first().waitFor({ state: 'visible' })
+  await desk.screenshot({ path: `${out}/desktop-fixture-rain-1440.png` })
+  await desk.close()
+  const client = await page.context().newCDPSession(page)
+  await client.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }] })
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.locator('.hour-col').first().waitFor({ state: 'visible' })
+  blurReport.chromeReducedTransparency = await readBlur(page)
+  await page.screenshot({ path: `${out}/mobile-reduced-transparency-390.png` })
+  await page.close()
+}
+
 const contrast = []
 const plates = [
   ['sunny-day-3', 'day'],
@@ -195,17 +268,22 @@ const plates = [
   const page = await open(browser, 390, 844)
   await page.addInitScript(() => sessionStorage.removeItem('chokchai-hour-selection-v1'))
   for (const [plate, tod] of plates) {
-    await page.goto(base + `?scene=sunny&tod=${tod}&plate=${plate}`, { waitUntil: 'networkidle', timeout: 40000 })
+    await page.goto(base + `?scene=sunny&tod=${tod}&plate=${plate}&fixture=rain`, { waitUntil: 'networkidle', timeout: 40000 })
     await page.waitForFunction(() => document.querySelector('.page')?.getAttribute('data-lum'))
     const tint = await page.evaluate(() => document.querySelector('.page')?.getAttribute('data-tint'))
-    const far = page.locator('.temp-line line').last()
+    const far = page.locator('.temp-line line[stroke-dasharray="4 4"]').last()
     if (await far.count()) await far.scrollIntoViewIfNeeded()
     await page.locator('.hour-col').last().click()
     const targets = [
+      [page.locator('[data-sticky] h1').first(), 'text', 4.5, 'sticky-title'],
+      [page.locator('[data-sticky] [data-measure="meta"]').first(), 'text', 4.5, 'sticky-meta'],
+      [page.locator('[data-sticky] [data-measure="hero"]').first(), 'text', 4.5, 'sticky-temp'],
       [page.locator('[data-measure="glass"]').first(), 'text', 4.5, 'glass-heading'],
       [page.locator('.hour-col.is-selected .font-label').last(), 'text', 4.5, 'selected-label'],
       [far, 'stroke', 3, 'far-temp-line'],
-      [page.locator('.tick:not(.is-on)').first(), 'fill', 3, 'inactive-tick'],
+      [page.locator('.hour-scroll .tick:not(.is-on)').first(), 'fill', 3, 'inactive-tick'],
+      [page.locator('.hour-scroll .tick-stack.is-strong .tick.is-on').first(), 'fill', 3, 'blue-tick'],
+      [page.locator('.caution.is-rain').first(), 'text', 4.5, 'blue-badge'],
     ]
     for (const [locator, paint, need, el] of targets) {
       if (!(await locator.count())) continue
@@ -214,36 +292,40 @@ const plates = [
       contrast.push({ plate, tint, el, ...hit })
       console.log(plate, tint, el, hit.fg, 'on', hit.bg, hit.ratio, hit.pass ? 'pass' : 'FAIL')
     }
-    const probe = await page.evaluate(() => {
-      const host = document.querySelector('#details') || document.body
-      const blue = document.createElement('span')
-      blue.className = 'caution is-rain'
-      blue.dataset.probe = 'blue'
-      blue.textContent = 'ฝน 60%'
-      const orange = document.createElement('span')
-      orange.className = 'caution is-heat'
-      orange.dataset.probe = 'orange'
-      orange.textContent = 'พายุ'
-      const strong = document.createElement('i')
-      strong.className = 'tick is-on'
-      strong.dataset.probe = 'strong'
-      const stack = document.createElement('span')
-      stack.className = 'tick-stack is-strong'
-      stack.appendChild(strong)
-      host.append(blue, orange, stack)
-      return true
-    })
-    if (probe) {
-      for (const [sel, paint, need, el] of [
-        ['[data-probe="blue"]', 'text', 4.5, 'blue-badge'],
-        ['[data-probe="orange"]', 'text', 4.5, 'orange-badge'],
-        ['[data-probe="strong"]', 'fill', 3, 'blue-tick'],
-      ]) {
-        const hit = await contrastOf(page, page.locator(sel), paint, need)
-        if (!hit) continue
-        contrast.push({ plate, tint, el, ...hit })
-        console.log(plate, tint, el, hit.fg, 'on', hit.bg, hit.ratio, hit.pass ? 'pass' : 'FAIL')
-      }
+    const dashes = await page.evaluate(() =>
+      [...document.querySelectorAll('.temp-line line')].slice(0, 8).map((line) => line.getAttribute('stroke-dasharray')),
+    )
+    if (plate === 'sunny-day-3') {
+      await check('first six segments are solid and the next is 4 4', dashes.slice(0, 6).every((d) => !d) && dashes[6] === '4 4', JSON.stringify(dashes))
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto(base + '?scene=sunny&tod=day&plate=sunny-day-3', { waitUntil: 'networkidle', timeout: 40000 })
+  await page.locator('aside h1').first().waitFor({ state: 'visible' })
+  const desk = await contrastOf(page, page.locator('aside [data-measure="hero"]').first(), 'text', 4.5)
+  if (desk) {
+    contrast.push({ plate: 'sunny-day-3', tint: 'day', el: 'desktop-hero', ...desk })
+    console.log('desktop-hero', desk.fg, 'on', desk.bg, desk.ratio, desk.pass ? 'pass' : 'FAIL')
+  }
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(base + '?mode=storm', { waitUntil: 'networkidle', timeout: 40000 })
+  await page.locator('[data-sticky] h1').waitFor({ state: 'visible' })
+  for (const [sel, paint, need, el] of [
+    ['[data-sticky] h1', 'text', 4.5, 'storm-sticky-title'],
+    ['[data-sticky] [data-measure="hero"]', 'text', 4.5, 'storm-sticky-temp'],
+    ['article [data-measure="glass"]', 'text', 4.5, 'storm-card-heading'],
+  ]) {
+    const hit = await contrastOf(page, page.locator(sel).first(), paint, need)
+    if (!hit) continue
+    contrast.push({ plate: 'storm', tint: 'storm', el, ...hit })
+    console.log('storm', el, hit.fg, 'on', hit.bg, hit.ratio, hit.pass ? 'pass' : 'FAIL')
+  }
+  const orangeHost = page.locator('.caution.is-heat').first()
+  if (await orangeHost.count()) {
+    const hit = await contrastOf(page, orangeHost, 'text', 4.5)
+    if (hit) {
+      contrast.push({ plate: 'storm', tint: 'storm', el: 'orange-badge', ...hit })
+      console.log('storm orange-badge', hit.fg, 'on', hit.bg, hit.ratio, hit.pass ? 'pass' : 'FAIL')
     }
   }
   const narrow = await page.evaluate(() => ({
@@ -262,23 +344,32 @@ let webkitStatus = 'not-installed'
 try {
   const wk = await webkit.launch()
   const page = await wk.newPage({ viewport: { width: 390, height: 844 }, locale: 'th-TH', timezoneId: 'Asia/Bangkok' })
-  const res = await page.goto(base + '?scene=sunny&tod=day', { waitUntil: 'networkidle', timeout: 40000 })
+  const res = await page.goto(base + '?fixture=rain&scene=sunny&tod=dawn', { waitUntil: 'networkidle', timeout: 40000 })
   await page.locator('.hour-col').nth(3).click()
-  const text = await page.locator('[data-sticky]').innerText()
-  webkitStatus = `launched status ${res?.status()} selection ${/พยากรณ์|พรุ่งนี้|ตอนนี้/.test(text)}`
-  await page.screenshot({ path: `${out}/webkit-mobile-390.png` })
+  const selected = await page.locator('[data-sticky]').innerText()
+  await page.evaluate(() => window.scrollTo(0, 420))
+  const stuck = await page.locator('[data-sticky]').evaluate((el) => Math.round(el.getBoundingClientRect().top))
+  await page.screenshot({ path: `${out}/webkit-selected-390.png` })
+  await page.getByRole('button', { name: 'ตอนนี้' }).click()
+  const restored = await page.locator('[data-sticky]').innerText()
+  blurReport.webkit = await readBlur(page)
+  webkitStatus = `launched status ${res?.status()} forecast=${/พยากรณ์|พรุ่งนี้/.test(selected)} returned=${/ตอนนี้/.test(restored) && !/พยากรณ์/.test(restored)} stickyTop=${stuck} blur=${JSON.stringify(blurReport.webkit)}`
+  await page.screenshot({ path: `${out}/webkit-fixture-rain-390.png` })
   await wk.close()
 } catch (err) {
   webkitStatus = `unavailable: ${err instanceof Error ? err.message.split('\n')[0] : err}`
 }
 notes.push(`WebKit: ${webkitStatus}`)
-notes.push('Chromium mobile viewport is not a physical iPhone. No real iOS device was used.')
+notes.push('Chromium mobile viewport is not a physical iPhone. Playwright WebKit is an emulator, not a physical iPhone.')
+notes.push('Chrome getPropertyValue(-webkit-backdrop-filter) is empty while backdrop-filter is the used blur. Both declarations are in the production CSS. WebKit reports both computed values as the same blur.')
+notes.push('prefers-reduced-transparency was emulated in Chromium via CDP. Playwright WebKit has no reduced-transparency media emulation, so that fallback was not forced there.')
 notes.push(`Console errors: ${consoleErrors.filter((e) => !e.includes('favicon')).length}`)
 
 const report = {
   engine: 'Chromium via /usr/bin/google-chrome, Playwright',
   webkit: webkitStatus,
   checks,
+  blur: blurReport,
   contrast,
   consoleErrors: consoleErrors.slice(0, 20),
   notes,

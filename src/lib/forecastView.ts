@@ -169,6 +169,12 @@ export function bangkokWallClock(date = new Date()): string {
   return `${String(hour).padStart(2, '0')}:${get('minute').slice(0, 2).padStart(2, '0')}`
 }
 
+export function clearSkyPhrase(tod: 'dawn' | 'day' | 'sunset' | 'night'): string {
+  if (tod === 'dawn') return 'เช้านี้ฟ้าโปร่ง'
+  if (tod === 'night') return 'ท้องฟ้าแจ่มใส'
+  return 'ท้องฟ้าโปร่ง · แดดจัด'
+}
+
 export function nightSafeCopy(label: string, night: boolean): string {
   if (!night || !label.includes('แดด')) return label
   return 'ท้องฟ้าแจ่มใส'
@@ -190,15 +196,18 @@ export function timeTintFor(tod: 'dawn' | 'day' | 'sunset' | 'night', hour: numb
   return 'day'
 }
 
-/** Solid near the present, dashed farther out. Not a confidence interval. */
-export function segmentDash(index: number, total: number): string | undefined {
-  if (total <= 1) return undefined
-  const solidUntil = Math.max(2, Math.ceil(total * 0.3))
-  if (index < solidUntil) return undefined
-  const t = (index - solidUntil) / Math.max(1, total - solidUntil)
-  const dash = Math.max(3, 7 - t * 3)
-  const gap = 2 + t * 5
-  return `${dash.toFixed(1)} ${gap.toFixed(1)}`
+/** Solid for the first 6 forecast hours, then a fixed dash. Not a confidence interval. */
+export function segmentDash(index: number, _total?: number): string | undefined {
+  if (index < 6) return undefined
+  return '4 4'
+}
+
+/** On-screen rain fixture. Never used unless the page is explicitly in fixture mode. */
+export function applyRainFixture<T extends { precipProb: number | null }>(points: T[]): T[] {
+  const pattern = [0, 59, 60, 85, 100]
+  return points.map((point, index) =>
+    index < pattern.length ? { ...point, precipProb: pattern[index] } : point,
+  )
 }
 
 export function loadSelection(storage: Pick<Storage, 'getItem'> | null): string | null {

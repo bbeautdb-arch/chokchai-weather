@@ -78,8 +78,8 @@ body {
       rgba(245, 240, 232, calc(var(--frost, 0.68) * 0.82)) 100%
     ),
     linear-gradient(rgba(20, 18, 16, var(--scrim, 0.32)), rgba(20, 18, 16, var(--scrim, 0.32)));
-  backdrop-filter: blur(40px) saturate(165%) brightness(1.02);
   -webkit-backdrop-filter: blur(40px) saturate(165%) brightness(1.02);
+  backdrop-filter: blur(40px) saturate(165%) brightness(1.02);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.9) inset,
     0 -1px 1px rgba(50, 40, 25, 0.1) inset,
@@ -132,10 +132,10 @@ body {
   margin-left: -16px;
   border-radius: 0 0 22px 22px;
   padding-top: max(12px, env(safe-area-inset-top));
-  /* Opaque fill so scrolling text is not sampled by backdrop-filter. The fade below carries the blur. */
-  background: #f7f4ee;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.58), rgba(255, 252, 248, 0.36));
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  backdrop-filter: blur(32px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .glass > .scroll-edge {
@@ -177,9 +177,10 @@ body {
 }
 
 .page[data-mode="storm"] .glass.sticky.sticky-answer {
-  background: #161310;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: linear-gradient(180deg, rgba(28, 24, 20, 0.58), rgba(12, 10, 9, 0.36));
+  -webkit-backdrop-filter: blur(32px) saturate(140%);
+  backdrop-filter: blur(32px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .page[data-mode="storm"] .glass::before {
@@ -191,23 +192,20 @@ body {
 }
 
 .glass.glass-solid {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 252, 248, calc(var(--frost, 0.68) + 0.08)) 0%,
-      rgba(247, 244, 238, calc(var(--frost, 0.68) + 0.04)) 100%
-    ),
-    linear-gradient(rgba(20, 18, 16, var(--scrim, 0.32)), rgba(20, 18, 16, var(--scrim, 0.32)));
-  backdrop-filter: blur(48px) saturate(160%);
-  -webkit-backdrop-filter: blur(48px) saturate(160%);
+  /* Frost alone is the fill, held at 0.45–0.60. A second scrim layer pushed the combined alpha above that. */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 252, 248, var(--frost, 0.55)) 0%,
+    rgba(247, 244, 238, var(--frost, 0.55)) 100%
+  );
+  -webkit-backdrop-filter: blur(36px) saturate(160%);
+  backdrop-filter: blur(36px) saturate(160%);
 }
 
 .page[data-mode="storm"] .glass.glass-solid {
-  background:
-    linear-gradient(180deg, rgba(32, 28, 24, 0.8) 0%, rgba(18, 16, 14, 0.72) 100%),
-    linear-gradient(rgba(20, 18, 16, var(--scrim, 0.28)), rgba(20, 18, 16, var(--scrim, 0.28)));
-  backdrop-filter: blur(48px) saturate(140%);
-  -webkit-backdrop-filter: blur(48px) saturate(140%);
+  background: linear-gradient(180deg, rgba(32, 28, 24, 0.58) 0%, rgba(18, 16, 14, 0.48) 100%);
+  -webkit-backdrop-filter: blur(36px) saturate(140%);
+  backdrop-filter: blur(36px) saturate(140%);
 }
 
 .panel {
@@ -410,8 +408,8 @@ body {
   .glass.sticky.sticky-answer,
   .panel {
     background: #f3eee6;
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   .page[data-mode="storm"] .glass,
@@ -419,6 +417,8 @@ body {
   .page[data-mode="storm"] .glass.sticky.sticky-answer,
   .page[data-mode="storm"] .panel {
     background: #161310;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   .caution {
@@ -434,7 +434,7 @@ body {
   }
 
   .scroll-edge {
-    backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }

@@ -86,9 +86,24 @@ export function HourlyChart({ points, nowTime, selectedTime, today, onSelect }: 
                 x2={(i + 1) * col + col / 2}
                 y2={yOf(next.temperature)}
                 stroke="var(--chart)"
-                strokeWidth="2.5"
-                strokeLinecap="round"
+                strokeWidth="2"
+                strokeLinecap="butt"
                 strokeDasharray={dash}
+              />
+            )
+          })}
+          {points.map((p, i) => {
+            if (p.time !== active) return null
+            const x = i * col + col / 2
+            return (
+              <line
+                key={`mark-${p.time}`}
+                x1={x}
+                x2={x}
+                y1={2}
+                y2={76}
+                stroke="#8a847c"
+                strokeWidth="1.25"
               />
             )
           })}
@@ -98,7 +113,7 @@ export function HourlyChart({ points, nowTime, selectedTime, today, onSelect }: 
                 key={`d-${p.time}`}
                 cx={i * col + col / 2}
                 cy={yOf(p.temperature)}
-                r={p.time === active ? 4.5 : 3}
+                r={p.time === active ? 5 : 2.5}
                 fill="var(--chart)"
               />
             ),

@@ -15,6 +15,7 @@ import {
   type TimeOfDay,
 } from './lib/weather'
 import {
+  applyRainFixture,
   bangkokWallClock,
   freshnessLabel,
   hourRole,
@@ -53,9 +54,16 @@ export default function App() {
       const validTod = tod && ['dawn', 'day', 'sunset', 'night'].includes(tod) ? tod : null
       const validMode = mode === 'storm' || mode === 'calm' ? mode : null
       const plate = backgroundById(q.get('plate') ?? '')
-      return { scene: validScene, tod: validTod, mode: validMode, plate }
+      const fixture = q.get('fixture') === 'rain' ? 'rain' : null
+      return { scene: validScene, tod: validTod, mode: validMode, plate, fixture }
     } catch {
-      return { scene: null, tod: null, mode: null as 'storm' | 'calm' | null, plate: null as string | null }
+      return {
+        scene: null,
+        tod: null,
+        mode: null as 'storm' | 'calm' | null,
+        plate: null as string | null,
+        fixture: null as 'rain' | null,
+      }
     }
   }, [])
 
@@ -106,9 +114,10 @@ export default function App() {
     }
   }, [liveData, demo.tod, overrideScene])
 
-  const points = displayData
+  const livePoints = displayData
     ? upcomingHours(displayData.hourly, windowLength(displayData.current.time))
     : []
+  const points = demo.fixture === 'rain' ? applyRainFixture(livePoints) : livePoints
   const nowPoint = points[0] ?? null
   const today = nowPoint ? nowPoint.time.slice(0, 10) : ''
   const [picked, setPicked] = useState<string | null | undefined>(undefined)
@@ -148,7 +157,7 @@ export default function App() {
       : (chosen?.hour ?? 12)
   const tint = shown ? timeTintFor(viewedTod, viewedHour) : 'day'
   const storm = demo.mode === 'calm' ? false : demo.mode === 'storm' || Boolean(shown?.storm)
-  const sample = Boolean(demo.scene || demo.tod || demo.mode)
+  const sample = Boolean(demo.scene || demo.tod || demo.mode || demo.fixture)
   const showStaleBanner = weather.status === 'error' && Boolean(weather.stale)
   const updatedLabel = displayData?.fetchedAt ? `อัปเดต ${formatUpdatedAt(displayData.fetchedAt)} น.` : null
   const markScene = shown?.scene ?? displayData?.scene ?? overrideScene ?? 'partly'
@@ -197,7 +206,7 @@ export default function App() {
       const L = sum / n
       const t = Math.min(1, Math.max(0, (L - 0.08) / 0.64))
       const scrim = 0.2 + t * 0.18
-      const frost = 0.82 - t * 0.24
+      const frost = 0.6 - t * 0.15
       const page = document.querySelector('.page')
       if (!(page instanceof HTMLElement)) return
       page.style.setProperty('--scrim', scrim.toFixed(3))
@@ -233,6 +242,7 @@ export default function App() {
       data-scene={shown?.scene ?? displayData?.scene ?? scene}
       data-tod={presented?.tod ?? displayData?.timeOfDay ?? demo.tod ?? ''}
       data-tint={tint}
+      data-fixture={demo.fixture ?? ''}
       data-bg={pageBg}
     >
       <div
