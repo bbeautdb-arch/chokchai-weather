@@ -5,6 +5,7 @@ import {
   hourRole,
   hourStatusLabel,
   bangkokWallClock,
+  applyRainFixture,
   clearSkyPhrase,
   freshnessLabel,
   nightSafeCopy,
@@ -150,11 +151,22 @@ describe('summary and tint', () => {
     assert.ok(windowLength('2026-11-08T00:00') >= 30)
   })
 
-  it('labels a clear dawn without the harsh sun phrase and keeps night plain', () => {
-    assert.equal(clearSkyPhrase('dawn'), 'เช้านี้ฟ้าโปร่ง')
-    assert.equal(clearSkyPhrase('dawn').includes('แดด'), false)
-    assert.equal(clearSkyPhrase('night'), 'ท้องฟ้าแจ่มใส')
-    assert.equal(clearSkyPhrase('day'), 'ท้องฟ้าโปร่ง · แดดจัด')
+  it('uses the morning phrase from sunrise until 09:00 and harsh sun only with solar data', () => {
+    const rise = '2026-11-08T06:09'
+    const day = { tod: 'day' as const, sunrise: rise }
+    assert.equal(clearSkyPhrase({ tod: 'dawn', clock: '05:50', sunrise: rise }), 'เช้านี้ฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase({ tod: 'night', clock: '06:00', sunrise: rise, uvIndex: 8 }), 'ท้องฟ้าแจ่มใส')
+    assert.equal(clearSkyPhrase({ ...day, clock: '06:08' }), 'ท้องฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase({ ...day, clock: '06:09' }), 'เช้านี้ฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase({ ...day, clock: '07:00', uvIndex: 0.2, shortwaveWm2: 40 }), 'เช้านี้ฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase({ ...day, clock: '08:59' }), 'เช้านี้ฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase({ ...day, clock: '09:00' }), 'ท้องฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase({ ...day, clock: '09:00', uvIndex: 5.9, shortwaveWm2: 599 }), 'ท้องฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase({ ...day, clock: '09:00', uvIndex: 6 }), 'ท้องฟ้าโปร่ง · แดดจัด')
+    assert.equal(clearSkyPhrase({ ...day, clock: '12:00', shortwaveWm2: 600 }), 'ท้องฟ้าโปร่ง · แดดจัด')
+    assert.equal(clearSkyPhrase({ ...day, clock: '12:00', uvIndex: null, shortwaveWm2: null }), 'ท้องฟ้าโปร่ง')
+    assert.equal(clearSkyPhrase({ tod: 'day', clock: '07:00' }).includes('แดดจัด'), false)
+    assert.equal(clearSkyPhrase({ tod: 'sunset', clock: '17:40', sunrise: rise }).includes('แดดจัด'), false)
   })
 
   it('keeps the first six hours solid and later hours on a fixed dash', () => {
@@ -164,7 +176,13 @@ describe('summary and tint', () => {
     assert.equal(segmentDash(20, 16), '4 4')
   })
 
-  it('fixture rain boundaries stay exact for the badge and round only ticks', () => {
+  it('fixture rain boundaries stay exact and do not change the clear-sky phrase', () => {
+    const source = [hour({ time: '2026-11-08T07:00', precipProb: 4, weatherCode: 0, isDay: true })]
+    const fitted = applyRainFixture(source)
+    assert.equal(fitted[0].precipProb, 0)
+    assert.equal(fitted[0].weatherCode, 0)
+    assert.equal(fitted[0].isDay, true)
+    assert.equal(clearSkyPhrase({ tod: 'day', clock: '07:00', sunrise: '2026-11-08T06:09' }), 'เช้านี้ฟ้าโปร่ง')
     const points = [0, 59, 60, 85, 100].map((pct, i) =>
       hour({ time: `2026-11-08T${String(10 + i).padStart(2, '0')}:00`, precipProb: pct }),
     )

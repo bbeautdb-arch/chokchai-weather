@@ -49,7 +49,7 @@ export function WeatherDetails({
   return (
     <article id="details" className="glass glass-solid p-4 md:p-6" aria-label="รายละเอียดอากาศ">
       <h2 data-measure="glass" className="font-display text-[20px] font-semibold text-[var(--ink)]">รายละเอียด</h2>
-      <p className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{hourStatusLabel(shown.role)} · {shown.clock}</p>
+      <p className="mt-1 text-[15px] text-[var(--ink)]">{hourStatusLabel(shown.role)} · {shown.clock}</p>
       <div className="mt-2">
         <StatRow label="สูงสุด / ต่ำสุดวันนี้" value={`${Math.round(data.daily.tempMax)}° / ${Math.round(data.daily.tempMin)}°`} />
         {shown.humidity != null && <StatRow label="ความชื้น" value={`${Math.round(shown.humidity)}%`} />}
@@ -102,9 +102,9 @@ export function AnswerHero({
           <p className="font-label text-[15px] text-[var(--ink)]">{hourStatusLabel(shown.role)} · {shown.clock}</p>
           <div className="flex items-baseline gap-2">
             <span data-measure="hero" className="font-display tabular text-[40px] font-bold leading-none text-[var(--ink)]">{temp}</span>
-            <span data-measure="condition" className="truncate text-[15px] font-semibold leading-snug text-[var(--ink)]">{shown.condition}</span>
+            <span data-measure="condition" className="truncate text-[15px] leading-snug text-[var(--ink)]">{shown.condition}</span>
           </div>
-          <p data-measure="body" className="mt-1 text-[15px] font-semibold leading-snug text-[var(--ink)]">{summary}</p>
+          <p data-measure="body" className="mt-1 text-[15px] leading-snug text-[var(--ink)]">{summary}</p>
           {badge && (
             <p className="mt-1">
               <span data-measure="badge" className={`${cautionClass} px-2.5 py-1 text-[15px]`}>
@@ -130,8 +130,8 @@ export function AnswerHero({
         <WeatherIcon scene={shown.scene} night={shown.night} className="mono-wx h-20 w-20 shrink-0" />
         <p data-measure="hero" className="font-display tabular text-[72px] font-bold leading-none text-[var(--ink)] min-[900px]:text-[88px]">{temp}</p>
       </div>
-      <p data-measure="condition" className="mt-3 text-[18px] font-semibold leading-snug text-[var(--ink)]">{shown.condition}</p>
-      <p data-measure="body" className="mt-2 text-[16px] font-semibold leading-snug text-[var(--ink)]">{summary}</p>
+      <p data-measure="condition" className="mt-3 text-[18px] leading-snug text-[var(--ink)]">{shown.condition}</p>
+      <p data-measure="body" className="mt-2 text-[16px] leading-snug text-[var(--ink)]">{summary}</p>
       {badge && (
         <p className="mt-3 text-[16px] font-semibold">
           <span data-measure="badge" className={cautionClass}>

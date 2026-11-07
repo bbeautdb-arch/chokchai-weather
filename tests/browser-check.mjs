@@ -59,6 +59,32 @@ async function check(name, ok, detail = '') {
   })
   await check('360 heading inside viewport', !layout.overflow, layout.text.replace(/\n/g, ' | '))
   await check('home 200', res?.status() === 200)
+  const type = await page.evaluate(async () => {
+    await document.fonts.ready
+    const css = (sel) => {
+      const el = document.querySelector(sel)
+      if (!el) return null
+      const cs = getComputedStyle(el)
+      return { family: cs.fontFamily, weight: cs.fontWeight }
+    }
+    return {
+      body: css('[data-measure="body"]'),
+      label: css('.font-label'),
+      temp: css('[data-measure="hero"]'),
+      loaded: [400, 500, 600, 700].map((weight) => document.fonts.check(`${weight} 16px "IBM Plex Sans Thai"`)),
+    }
+  })
+  const families = `${type.body?.family ?? ''} ${type.label?.family ?? ''} ${type.temp?.family ?? ''}`
+  await check(
+    'one Thai family is IBM Plex Sans Thai',
+    families.includes('IBM Plex Sans Thai') && !families.includes('Kanit') && !families.includes('Sarabun') && type.loaded.every(Boolean),
+    JSON.stringify(type),
+  )
+  await check(
+    'type weights are body 400, labels 500, temperature 600-700',
+    type.body?.weight === '400' && type.label?.weight === '500' && Number(type.temp?.weight) >= 600 && Number(type.temp?.weight) <= 700,
+    JSON.stringify(type),
+  )
 
   const before = await page.locator('[data-sticky]').innerText()
   await page.locator('.hour-col').nth(5).click()
@@ -139,6 +165,30 @@ await shot('mobile-storm-390', 390, 844, '?mode=storm')
 await shot('mobile-fixture-rain-390', 390, 844, '?fixture=rain')
 await shot('desktop-fixture-rain-1440', 1440, 900, '?fixture=rain')
 await shot('mobile-reduced-motion-390', 390, 844, '?scene=sunny&tod=day')
+
+{
+  const page = await open(browser, 390, 844)
+  await page.goto(base, { waitUntil: 'networkidle', timeout: 40000 })
+  await page.locator('.hour-col', { hasText: '07:00' }).first().click()
+  await page.locator('[data-measure="condition"]').first().waitFor({ state: 'visible' })
+  const cond = await page.locator('[data-measure="condition"]').first().innerText()
+  await check('07:00 does not say harsh sun', !cond.includes('แดดจัด'), cond)
+  if (cond.includes('โปร่ง')) await check('07:00 clear sky uses the morning phrase', cond.includes('เช้านี้ฟ้าโปร่ง'), cond)
+  const tray = await page.locator('.hour-scroll').evaluate((el) => {
+    const cs = getComputedStyle(el)
+    return {
+      panel: el.classList.contains('panel'),
+      background: cs.backgroundColor,
+      backdropFilter: cs.getPropertyValue('backdrop-filter'),
+      webkitBackdropFilter: cs.getPropertyValue('-webkit-backdrop-filter'),
+    }
+  })
+  const alpha = Number((tray.background.match(/[\d.]+(?=\))/) ?? [])[0])
+  const blurPx = Number((tray.backdropFilter.match(/blur\(([\d.]+)px\)/) ?? [])[1])
+  await check('hour tray is glass, not the opaque panel', !tray.panel && alpha >= 0.45 && alpha <= 0.6 && blurPx >= 28 && blurPx <= 36, JSON.stringify(tray))
+  await page.screenshot({ path: `${out}/mobile-0700-390.png` })
+  await page.close()
+}
 
 function parseCssColor(str) {
   const m = String(str).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
@@ -226,6 +276,7 @@ async function readBlur(page) {
       card: read('article.glass-solid'),
       sticky: read('[data-sticky]'),
       glass: read('.glass'),
+      tray: read('.hour-scroll'),
       frost: pageEl instanceof HTMLElement ? pageEl.style.getPropertyValue('--frost') : '',
       fixture: pageEl?.getAttribute('data-fixture'),
     }
@@ -314,6 +365,8 @@ const plates = [
     ['[data-sticky] h1', 'text', 4.5, 'storm-sticky-title'],
     ['[data-sticky] [data-measure="hero"]', 'text', 4.5, 'storm-sticky-temp'],
     ['article [data-measure="glass"]', 'text', 4.5, 'storm-card-heading'],
+    ['.hour-scroll .font-label', 'text', 4.5, 'storm-hour-label'],
+    ['.hour-scroll .tick', 'fill', 3, 'storm-tick'],
   ]) {
     const hit = await contrastOf(page, page.locator(sel).first(), paint, need)
     if (!hit) continue

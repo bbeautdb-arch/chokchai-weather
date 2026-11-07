@@ -110,7 +110,12 @@ export default function App() {
       current: { ...liveData.current, weatherCode: code },
       timeOfDay: tod,
       backgroundUrl: pickBackground(nextScene, tod, 'demo'),
-      conditionLabel: conditionLabelFor(nextScene, code, tod),
+      conditionLabel: conditionLabelFor(nextScene, code, tod, {
+        clock: tod === 'dawn' ? '07:00' : tod === 'sunset' ? '17:30' : tod === 'night' ? '23:00' : '12:00',
+        sunrise: liveData.sunrise,
+        uvIndex: null,
+        shortwaveWm2: null,
+      }),
     }
   }, [liveData, demo.tod, overrideScene])
 

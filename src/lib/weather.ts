@@ -1,6 +1,6 @@
 /** Open-Meteo helpers for Chok Chai, Nakhon Ratchasima */
 
-import { clearSkyPhrase } from './forecastView'
+import { bangkokWallClock, clearSkyPhrase } from './forecastView'
 import bgManifest from '../data/bgManifest.json'
 
 const BASE = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '/')
@@ -28,6 +28,8 @@ export interface CurrentWeather {
   weatherCode: number
   cloudCover: number
   windSpeed: number
+  uvIndex: number | null
+  shortwaveWm2: number | null
 }
 
 export interface HourlyPoint {
@@ -42,6 +44,8 @@ export interface HourlyPoint {
   windSpeed: number | null
   precipitation: number | null
   cloudCover: number | null
+  uvIndex: number | null
+  shortwaveWm2: number | null
 }
 
 export interface DailySummary {
@@ -72,7 +76,7 @@ export interface WeatherBundle {
 type BgEntry = { id: string; scene: string; tod: string; file: string; bytes: number }
 
 const WMO_TH: Record<number, string> = {
-  0: 'ท้องฟ้าโปร่ง · แดดจัด',
+  0: 'ท้องฟ้าโปร่ง',
   1: 'มีเมฆบางส่วน · แดดอ่อน',
   2: 'มีเมฆเป็นส่วนมาก',
   3: 'เมฆมาก',
@@ -139,7 +143,12 @@ export function isStormCode(code: number): boolean {
 }
 
 /** User-facing condition. Night never says แดด and never uses a daytime sun phrase. */
-export function conditionLabelFor(scene: SceneKey, code: number, tod: TimeOfDay = 'day'): string {
+export function conditionLabelFor(
+  scene: SceneKey,
+  code: number,
+  tod: TimeOfDay = 'day',
+  sky: { clock?: string | null; sunrise?: string | null; uvIndex?: number | null; shortwaveWm2?: number | null } = {},
+): string {
   if (isNightTime(tod)) return nightConditionLabel(scene, code)
   const wmo = WMO_TH[code]
   if (scene === 'storm') {
@@ -162,10 +171,9 @@ export function conditionLabelFor(scene: SceneKey, code: number, tod: TimeOfDay 
     if (wmo && [1, 2].includes(code)) return wmo
     return 'มีเมฆบางส่วน'
   }
-  if (code === 0 && (tod === 'dawn' || scene === 'sunny')) return clearSkyPhrase(tod)
-  if (wmo && code === 0) return wmo
+  if (code === 0) return clearSkyPhrase({ tod, ...sky })
   if (tod === 'dawn') return 'เช้านี้มีเมฆ'
-  return 'ท้องฟ้าโปร่ง · แดดจัด'
+  return wmo ?? 'ท้องฟ้าโปร่ง'
 }
 
 function nightConditionLabel(scene: SceneKey, code: number): string {
@@ -376,7 +384,12 @@ export function presentHour(
     scene,
     tod,
     night: tod === 'night',
-    label: conditionLabelFor(scene, point.weatherCode, tod),
+    label: conditionLabelFor(scene, point.weatherCode, tod, {
+      clock: point.time,
+      sunrise: sunByDate[point.time.slice(0, 10)]?.sunrise ?? null,
+      uvIndex: point.uvIndex,
+      shortwaveWm2: point.shortwaveWm2,
+    }),
     backgroundUrl: pickBackground(scene, tod, point.time, true),
   }
 }
@@ -391,16 +404,16 @@ export function buildOpenMeteoUrl(host = 'api.open-meteo.com'): string {
     longitude: String(CHOKCHAI.lon),
     timezone: CHOKCHAI.timezone,
     current:
-      'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,wind_speed_10m,is_day',
+      'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,wind_speed_10m,is_day,uv_index,shortwave_radiation',
     hourly:
-      'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,precipitation_probability,weather_code,cloud_cover,wind_speed_10m,is_day',
+      'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,precipitation_probability,weather_code,cloud_cover,wind_speed_10m,is_day,uv_index,shortwave_radiation',
     daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,sunrise,sunset',
     forecast_days: '2',
   })
   return `https://${host}/v1/forecast?${params}`
 }
 
-const CACHE_KEY = 'chokchai-weather-v3'
+const CACHE_KEY = 'chokchai-weather-v4'
 const FETCH_TIMEOUT_MS = 15_000
 
 async function fetchWithTimeout(url: string, ms = FETCH_TIMEOUT_MS): Promise<Response> {
@@ -438,6 +451,8 @@ function parsePayload(data: unknown): WeatherBundle {
       cloud_cover?: Array<number | null>
       wind_speed_10m?: Array<number | null>
       is_day?: Array<number | null>
+      uv_index?: Array<number | null>
+      shortwave_radiation?: Array<number | null>
     }
     daily: {
       time?: string[]
@@ -459,6 +474,8 @@ function parsePayload(data: unknown): WeatherBundle {
     weatherCode: num(d.current.weather_code),
     cloudCover: num(d.current.cloud_cover),
     windSpeed: num(d.current.wind_speed_10m),
+    uvIndex: numOrNull(d.current.uv_index),
+    shortwaveWm2: numOrNull(d.current.shortwave_radiation),
   }
 
   const hourly: HourlyPoint[] = d.hourly.time.map((t: string, i: number) => {
@@ -476,6 +493,8 @@ function parsePayload(data: unknown): WeatherBundle {
       windSpeed: numOrNull(d.hourly.wind_speed_10m?.[i]),
       precipitation: numOrNull(d.hourly.precipitation?.[i]),
       cloudCover: numOrNull(d.hourly.cloud_cover?.[i]),
+      uvIndex: numOrNull(d.hourly.uv_index?.[i]),
+      shortwaveWm2: numOrNull(d.hourly.shortwave_radiation?.[i]),
     }
   })
 
@@ -515,7 +534,12 @@ function parsePayload(data: unknown): WeatherBundle {
     hourly,
     daily,
     scene,
-    conditionLabel: conditionLabelFor(scene, current.weatherCode, tod),
+    conditionLabel: conditionLabelFor(scene, current.weatherCode, tod, {
+      clock: bangkokWallClock(),
+      sunrise,
+      uvIndex: current.uvIndex ?? hourPoint?.uvIndex ?? null,
+      shortwaveWm2: current.shortwaveWm2 ?? hourPoint?.shortwaveWm2 ?? null,
+    }),
     sceneLabel: sceneLabel(scene),
     timeOfDay: tod,
     backgroundUrl: pickBackground(scene, tod, current.time),
@@ -546,11 +570,22 @@ export function loadWeatherCache(): WeatherBundle | null {
       sunrise: parsed.sunrise,
       sunset: parsed.sunset,
     })
+    const nowStamp = bangkokStamp()
+    const hourPoint =
+      parsed.hourly.find((h) => {
+        const start = isoStamp(h.time)
+        return nowStamp >= start && nowStamp < start + 3_600_000
+      }) ?? null
     return {
       ...parsed,
       sunByDate: parsed.sunByDate ?? {},
       timeOfDay: tod,
-      conditionLabel: conditionLabelFor(parsed.scene, parsed.current.weatherCode, tod),
+      conditionLabel: conditionLabelFor(parsed.scene, parsed.current.weatherCode, tod, {
+        clock: bangkokWallClock(),
+        sunrise: parsed.sunrise,
+        uvIndex: parsed.current.uvIndex ?? hourPoint?.uvIndex ?? null,
+        shortwaveWm2: parsed.current.shortwaveWm2 ?? hourPoint?.shortwaveWm2 ?? null,
+      }),
       backgroundUrl: pickBackground(parsed.scene, tod, parsed.current.time),
     }
   } catch {

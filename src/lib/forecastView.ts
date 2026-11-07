@@ -169,10 +169,46 @@ export function bangkokWallClock(date = new Date()): string {
   return `${String(hour).padStart(2, '0')}:${get('minute').slice(0, 2).padStart(2, '0')}`
 }
 
-export function clearSkyPhrase(tod: 'dawn' | 'day' | 'sunset' | 'night'): string {
-  if (tod === 'dawn') return 'เช้านี้ฟ้าโปร่ง'
-  if (tod === 'night') return 'ท้องฟ้าแจ่มใส'
-  return 'ท้องฟ้าโปร่ง · แดดจัด'
+/** WHO “high” UV, or strong shortwave. Daytime alone is not evidence. */
+export const STRONG_SUN_UV = 6
+export const STRONG_SUN_SHORTWAVE = 600
+
+export interface ClearSkyInput {
+  tod: 'dawn' | 'day' | 'sunset' | 'night'
+  /** Local clock `HH:MM` or an ISO timestamp in Asia/Bangkok. */
+  clock?: string | null
+  sunrise?: string | null
+  uvIndex?: number | null
+  shortwaveWm2?: number | null
+}
+
+function clockMinutes(value: string): number | null {
+  const time = value.includes('T') ? (value.split('T')[1] ?? '') : value
+  const [hh, mm] = time.split(':')
+  const hour = Number(hh)
+  const minute = Number(mm)
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
+  return (hour === 24 ? 0 : hour) * 60 + minute
+}
+
+export function hasStrongSun(uvIndex?: number | null, shortwaveWm2?: number | null): boolean {
+  const uv = uvIndex != null && Number.isFinite(uvIndex) ? uvIndex : null
+  const solar = shortwaveWm2 != null && Number.isFinite(shortwaveWm2) ? shortwaveWm2 : null
+  if (uv == null && solar == null) return false
+  return (uv != null && uv >= STRONG_SUN_UV) || (solar != null && solar >= STRONG_SUN_SHORTWAVE)
+}
+
+/** Clear-sky wording. Harsh sun requires UV or shortwave, never is_day. */
+export function clearSkyPhrase(input: ClearSkyInput): string {
+  if (input.tod === 'night') return 'ท้องฟ้าแจ่มใส'
+  if (input.tod === 'dawn') return 'เช้านี้ฟ้าโปร่ง'
+  const minutes = input.clock ? clockMinutes(input.clock) : null
+  const rise = input.sunrise ? clockMinutes(input.sunrise) : null
+  if (minutes != null && rise != null && minutes < rise) return 'ท้องฟ้าโปร่ง'
+  if (minutes != null && minutes < 9 * 60 && rise != null && minutes >= rise) return 'เช้านี้ฟ้าโปร่ง'
+  if (minutes != null && minutes < 9 * 60 && rise == null) return 'ท้องฟ้าโปร่ง'
+  if (hasStrongSun(input.uvIndex, input.shortwaveWm2)) return 'ท้องฟ้าโปร่ง · แดดจัด'
+  return 'ท้องฟ้าโปร่ง'
 }
 
 export function nightSafeCopy(label: string, night: boolean): string {
