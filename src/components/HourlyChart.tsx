@@ -51,7 +51,7 @@ export function HourlyChart({ points, nowTime, selectedTime, today, onSelect }: 
       </div>
       <div
         ref={rowRef}
-        className="hour-scroll"
+        className="hour-scroll panel"
         role="listbox"
         aria-label="เลือกชั่วโมง"
         tabIndex={0}

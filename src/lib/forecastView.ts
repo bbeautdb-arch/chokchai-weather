@@ -48,7 +48,8 @@ export function dateKey(iso: string): string {
 /** Tick count is the only rounding. The spoken percentage stays exact. */
 export function rainTickCount(pct: number | null): number | null {
   if (pct == null || !Number.isFinite(pct)) return null
-  return Math.max(0, Math.min(10, Math.round(pct / 10)))
+  const clamped = Math.max(0, Math.min(100, pct))
+  return Math.round(clamped / 10)
 }
 
 export function rainTicksAreStrong(pct: number | null): boolean {
@@ -147,6 +148,36 @@ export function hourStatusLabel(role: HourRole): string {
   if (role === 'now') return 'ตอนนี้'
   if (role === 'tomorrow') return 'พรุ่งนี้'
   return 'พยากรณ์'
+}
+
+/** Now uses the wall clock. Forecast slots keep the hour-start label. */
+export function statusClock(role: HourRole, slotIso: string, wallHHmm: string): string {
+  if (role === 'now') return wallHHmm
+  return formatHourLabel(slotIso)
+}
+
+export function bangkokWallClock(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00'
+  let hour = Number(get('hour'))
+  if (hour === 24) hour = 0
+  return `${String(hour).padStart(2, '0')}:${get('minute').slice(0, 2).padStart(2, '0')}`
+}
+
+export function nightSafeCopy(label: string, night: boolean): string {
+  if (!night || !label.includes('แดด')) return label
+  return 'ท้องฟ้าแจ่มใส'
+}
+
+export function freshnessLabel(input: { failed: boolean; hasStale: boolean; fromCache: boolean }): string {
+  if (input.failed && !input.hasStale) return 'โหลดไม่สำเร็จ'
+  if (input.hasStale || input.fromCache) return 'ข้อมูลที่บันทึกไว้'
+  return 'ข้อมูลสด'
 }
 
 export function timeTintFor(tod: 'dawn' | 'day' | 'sunset' | 'night', hour: number): TimeTint {

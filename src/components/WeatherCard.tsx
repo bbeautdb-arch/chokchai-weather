@@ -23,8 +23,8 @@ export interface ShownWeather {
 }
 
 function rainBadge(rain: WindowRain, storm: boolean): string | null {
-  if (storm && rain.pct != null) return `พายุ · ฝน ${rain.pct}% · อยู่ในที่ร่ม`
-  if (rain.caution && rain.pct != null) return rain.summary
+  if (storm) return rain.pct == null ? 'พายุ · อยู่ในที่ร่ม' : `พายุ · ฝน ${rain.pct}% · อยู่ในที่ร่ม`
+  if (rain.strong && rain.pct != null) return `ฝน ${rain.pct}%`
   return null
 }
 

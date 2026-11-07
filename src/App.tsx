@@ -15,16 +15,19 @@ import {
   type TimeOfDay,
 } from './lib/weather'
 import {
+  bangkokWallClock,
+  freshnessLabel,
   hourRole,
   windowLength,
   loadSelection,
+  nightSafeCopy,
   reconcileSelection,
   saveSelection,
   selectHour,
   thaiWindowSummary,
   timeTintFor,
   windowRain,
-  formatHourLabel,
+  statusClock,
 } from './lib/forecastView'
 import { AnswerHero, WeatherDetails, WeatherSkeleton, type ShownWeather } from './components/WeatherCard'
 import { BrandMark } from './components/WeatherIcon'
@@ -118,14 +121,21 @@ export default function App() {
   const shown: ShownWeather | null = displayData && chosen && presented
     ? {
         temperature: viewingNow ? displayData.current.temperature : chosen.temperature,
-        condition: viewingNow ? displayData.conditionLabel : presented.label,
+        condition: nightSafeCopy(
+          viewingNow ? displayData.conditionLabel : presented.label,
+          (viewingNow ? displayData.timeOfDay === 'night' : presented.night) && !(demo.tod && demo.tod !== 'night'),
+        ),
         scene: viewingNow ? displayData.scene : presented.scene,
         night: viewingNow ? displayData.timeOfDay === 'night' : presented.night,
         humidity: viewingNow ? displayData.current.humidity : chosen.humidity,
         wind: viewingNow ? displayData.current.windSpeed : chosen.windSpeed,
         feels: viewingNow ? displayData.current.apparentTemperature : chosen.apparentTemperature,
         role: hourRole(chosen, nowPoint?.time ?? chosen.time, today),
-        clock: formatHourLabel(chosen.time),
+        clock: statusClock(
+          hourRole(chosen, nowPoint?.time ?? chosen.time, today),
+          chosen.time,
+          bangkokWallClock(),
+        ),
         storm: isStormCode(viewingNow ? displayData.current.weatherCode : (chosen.weatherCode ?? -1)),
       }
     : null
@@ -156,12 +166,11 @@ export default function App() {
     setPicked(null)
     saveSelection(window.sessionStorage, null)
   }
-  const statusText =
-    weather.status === 'error' && !weather.stale
-      ? 'โหลดไม่สำเร็จ'
-      : showStaleBanner || (weather.status === 'ready' && weather.fromCache)
-        ? 'ข้อมูลที่บันทึกไว้'
-        : 'ข้อมูลสด'
+  const statusText = freshnessLabel({
+    failed: weather.status === 'error',
+    hasStale: showStaleBanner,
+    fromCache: weather.status === 'ready' && Boolean(weather.fromCache),
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -245,7 +254,7 @@ export default function App() {
           data-sticky="answer"
           className="glass sticky sticky-answer z-30 mb-4 p-3 md:hidden"
         >
-          <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="mb-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
             <div className="flex min-w-0 items-center gap-2">
               <BrandMark scene={markScene} night={markNight} />
               <div className="min-w-0">

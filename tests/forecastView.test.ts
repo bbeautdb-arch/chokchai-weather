@@ -4,11 +4,15 @@ import {
   finiteNumber,
   hourRole,
   hourStatusLabel,
+  bangkokWallClock,
+  freshnessLabel,
+  nightSafeCopy,
   rainTickCount,
   rainTicksAreStrong,
   reconcileSelection,
   segmentDash,
   selectHour,
+  statusClock,
   thaiWindowSummary,
   timeTintFor,
   windowLength,
@@ -39,9 +43,14 @@ describe('rain ticks', () => {
     assert.equal(rainTickCount(0), 0)
     assert.equal(rainTickCount(54), 5)
     assert.equal(rainTickCount(60), 6)
+    assert.equal(rainTickCount(0), 0)
+    assert.equal(rainTickCount(59), 6)
+    assert.equal(rainTickCount(60), 6)
     assert.equal(rainTickCount(100), 10)
+    assert.equal(rainTicksAreStrong(0), false)
     assert.equal(rainTicksAreStrong(59), false)
     assert.equal(rainTicksAreStrong(60), true)
+    assert.equal(rainTicksAreStrong(100), true)
     assert.equal(finiteNumber(undefined), null)
   })
 })
@@ -85,6 +94,26 @@ describe('current versus forecast', () => {
     assert.equal(hourStatusLabel('forecast'), 'พยากรณ์')
     assert.equal(hourRole(points[2], now, today), 'tomorrow')
     assert.equal(hourStatusLabel('tomorrow'), 'พรุ่งนี้')
+  })
+
+  it('keeps the wall clock on now and the hour slot on a forecast', () => {
+    assert.equal(statusClock('now', '2026-11-08T00:00', '00:51'), '00:51')
+    assert.equal(statusClock('forecast', '2026-11-08T14:00', '00:51'), '14:00')
+    assert.equal(statusClock('tomorrow', '2026-11-09T00:00', '00:51'), '00:00')
+    assert.equal(bangkokWallClock(new Date('2026-11-07T17:51:00Z')), '00:51')
+  })
+
+  it('does not call a night sky sunny in normal mode', () => {
+    assert.equal(nightSafeCopy('ท้องฟ้าโปร่ง · แดดจัด', true), 'ท้องฟ้าแจ่มใส')
+    assert.equal(nightSafeCopy('ท้องฟ้าโปร่ง · แดดจัด', false), 'ท้องฟ้าโปร่ง · แดดจัด')
+    assert.equal(nightSafeCopy('เมฆมาก', true), 'เมฆมาก')
+  })
+
+  it('names offline and saved data without inventing a live state', () => {
+    assert.equal(freshnessLabel({ failed: true, hasStale: false, fromCache: false }), 'โหลดไม่สำเร็จ')
+    assert.equal(freshnessLabel({ failed: true, hasStale: true, fromCache: false }), 'ข้อมูลที่บันทึกไว้')
+    assert.equal(freshnessLabel({ failed: false, hasStale: false, fromCache: true }), 'ข้อมูลที่บันทึกไว้')
+    assert.equal(freshnessLabel({ failed: false, hasStale: false, fromCache: false }), 'ข้อมูลสด')
   })
 
   it('returns to now and drops a stale selection', () => {
